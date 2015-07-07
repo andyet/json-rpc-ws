@@ -1,0 +1,36 @@
+{
+  "name": "json-rpc-ws",
+  "version": "1.0.0",
+  "description": "json-rpc websocket transport",
+  "main": "index.js",
+  "scripts": {
+    "test": "lab -c",
+    "lint": "eslint .",
+    "validate": "npm ls"
+  },
+  "keywords": [
+    "json-rpc",
+    "websocket"
+  ],
+  "author": "Gar <gar+npm@danger.computer>",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "debug": "^2.2.0",
+    "hoek": "^2.14.0",
+    "uuid": "^2.0.1",
+    "ws": "^0.7.2"
+  },
+  "pre-commit": [
+    "lint",
+    "validate",
+    "test"
+  ],
+  "devDependencies": {
+    "code": "^1.4.1",
+    "eslint": "^0.23.0",
+    "eslint-plugin-hapi": "^1.2.0",
+    "lab": "^5.13.0",
+    "precommit-hook": "^3.0.0"
+  }
+}
