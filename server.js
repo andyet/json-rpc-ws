@@ -30,8 +30,8 @@ Util.inherits(Server, Base);
  */
 Server.prototype.start = function start (options, callback) {
 
-    logger('Server start - %s', options);
-    this.server = WebSocket.createServer(options, callback);
+    logger('Server start');
+    this.server = WebSocket.createServer(options);
     if (typeof callback === 'function') {
         this.server.once('listening', callback);
     }

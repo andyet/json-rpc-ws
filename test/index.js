@@ -3,6 +3,7 @@ var Code = require('code');
 var Lab = require('lab');
 var JsonRpcWs = require('../');
 
+Code.settings.truncateMessages = false;
 var lab = exports.lab = Lab.script();
 
 lab.experiment('json-rpc ws', function () {
@@ -12,6 +13,7 @@ lab.experiment('json-rpc ws', function () {
     lab.before(function (done) {
 
         server.expose('reflect', function (params, reply) {
+
 
             reply(null, params);
         });
