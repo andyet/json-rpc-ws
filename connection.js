@@ -165,8 +165,6 @@ Connection.prototype.message = function message (data) {
             return this.sendError(Connection.errors.invalidRequest);
         }
         delete this.responseHandlers[payload.id];
-        //TODO figure out if we want to alter this
-        //return responseHandler.call(this, payload.error, payload.result);
         return responseHandler(payload.error, payload.result);
     }
     if (!payload.method) {
