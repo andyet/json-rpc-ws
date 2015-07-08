@@ -1,5 +1,6 @@
 'use strict';
 var Base = require('./base');
+var Connection = require('./connection');
 var Hoek = require('hoek');
 var Util = require('util');
 var WebSocket = require('ws');
@@ -79,15 +80,9 @@ Client.prototype.getConnection = function getConnection () {
  */
 Client.prototype.disconnect = function disconnect (callback) {
 
-    if (this.isConnected()) {
-        var connection = this.getConnection();
-        connection.hangup(callback);
-        return;
-    }
-    if (typeof callback === 'function') {
-        callback();
-        return;
-    }
+    Hoek.assert(this.isConnected(), 'Not connected');
+    var connection = this.getConnection();
+    connection.hangup(callback);
 };
 
 /**

@@ -1,6 +1,7 @@
 'use strict';
 
 var Base = require('./base');
+var Connection = require('./connection');
 var Hoek = require('hoek');
 var Util = require('util');
 var WebSocket = require('ws');
@@ -48,11 +49,29 @@ Server.prototype.start = function start (options, callback) {
  */
 Server.prototype.stop = function stop () {
 
-    logger('stop');
+    logger('Server stop');
     this.hangup();
-    if (this.server) {
-        this.server.close();
-        this.server = null;
+    this.server.close();
+    this.server = null;
+};
+
+/**
+ * Send a method request through a specific connection
+ *
+ * @param {String} id - connection id to send the request through
+ * @param {String} method - name of method
+ * @param {Array} params - optional parameters for method
+ * @param {replyCallback} callback - optional reply handler
+ * @public
+ */
+Server.prototype.send = function send (id, method, params, callback) {
+
+    logger('Server send %s %s', id, method);
+    var connection = this.getConnection(id);
+    if (connection) {
+        connection.sendMethod(method, params, callback);
+    } else if (typeof callback === 'function') {
+        callback(Connection.errors.serverError);
     }
 };
 

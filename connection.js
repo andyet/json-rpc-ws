@@ -131,6 +131,7 @@ Connection.prototype.sendMethod = function sendMethod (method, params, callback)
  */
 Connection.prototype.sendError = function sendError (error) {
 
+    logger('sendError', error);
     this.sendResult(null, error);
 };
 
@@ -159,15 +160,12 @@ Connection.prototype.close = function close (error) {
 Connection.prototype.hangup = function hangup (callback) {
 
     logger('hangup');
-    if (this.socket) {
-        if (typeof callback === 'function') {
-            this.socket.once('error', callback);
-            this.socket.once('close', callback);
-        }
-        this.socket.close();
-    } else if (typeof callback === 'function') {
-        callback();
+    Hoek.assert('this.socket', 'Not connected');
+    if (typeof callback === 'function') {
+        this.socket.once('error', callback);
+        this.socket.once('close', callback);
     }
+    this.socket.close();
 };
 
 /**
@@ -198,7 +196,7 @@ Connection.prototype.message = function message (data) {
             return this.sendError(Connection.errors.invalidRequest);
         }
         delete this.responseHandlers[payload.id];
-        return responseHandler(payload.error, payload.result);
+        return responseHandler.call(this, payload.error, payload.result);
     }
     if (!payload.method) {
         return this.sendError(Connection.errors.invalidRequest);
@@ -207,23 +205,18 @@ Connection.prototype.message = function message (data) {
     if (!this.parent.hasHandler(payload.method)) {
         return this.sendError(Connection.errors.methodNotFound);
     }
-    if (payload.params && (!payload.params instanceof Array)) {
+    if (payload.params && !(payload.params instanceof Array)) {
         return this.sendError(Connection.errors.invalidParams);
     }
     var params = payload.params || [];
-    var handlers = this.parent.getHandlers(payload.method);
-    var handlerCount = handlers.length;
-    var handler;
+    var handler = this.parent.getHandler(payload.method);
     var handlerCallback = function handlerCallback (err, result) {
 
         logger('handler got callback %s, %s', err, result);
         return this.sendResult(payload.id, err, result);
     }.bind(this);
-    for (var handlerIndex = 0; handlerIndex < handlerCount; handlerIndex++) {
-        logger('calling handler %s', payload.method);
-        handler = handlers[handlerIndex];
-        handler(params, handlerCallback);
-    }
+    logger('calling handler %s', payload.method);
+    handler.call(this, params, handlerCallback);
 };
 
 

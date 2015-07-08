@@ -19,15 +19,16 @@ var Base = function Base () {
  *
  * @param {String} method - name of the method to add handler for.
  * @param {function} handler - function to be passed params for given method.
+ * @todo enforce handler w/ two-param callback
  * @public
  */
 Base.prototype.expose = function expose (method, handler) {
 
     logger('registering handler for %s', method);
-    if (!this.requestHandlers[method]) {
-        this.requestHandlers[method] = [];
+    if (this.requestHandlers[method]) {
+        throw Error('cannot expose handler, already exists ' + method);
     }
-    this.requestHandlers[method].push(handler.bind(this));
+    this.requestHandlers[method] = handler;
 };
 
 /**
@@ -71,14 +72,27 @@ Base.prototype.hasHandler = function hasHandler (method) {
 };
 
 /**
- * Get handlers for a given method
+ * Get handler for a given method
  *
  * @param {String} method - name of method
- * @returns {Array|void}  - handlers for given method, if any
+ * @returns {Array}  - handler for given method
+ * @public
  */
-Base.prototype.getHandlers = function getHandler (method) {
+Base.prototype.getHandler = function getHandler (method) {
 
     return this.requestHandlers[method];
+};
+
+/**
+ * Get a connection by id
+ *
+ * @param {id} id - id of the connection to get
+ * @returns {Connection} - Connection
+ * @public
+ */
+Base.prototype.getConnection = function getConnection (id) {
+
+    return this.connections[id];
 };
 
 /**

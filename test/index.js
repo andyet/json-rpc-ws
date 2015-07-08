@@ -1,6 +1,7 @@
 /*eslint func-names: 0*/
 var Code = require('code');
 var Lab = require('lab');
+var WS = require('ws');
 var JsonRpcWs = require('../');
 
 Code.settings.truncateMessages = false;
@@ -85,5 +86,109 @@ lab.experiment('json-rpc ws', function () {
             done();
         });
         client.send('delay', ['test three']);
+    });
+
+    lab.test('cannot register duplicate handler', function (done) {
+
+        Code.expect(function () {
+
+            server.expose('reflect', function (params, reply) {
+
+                reply();
+            });
+        }).to.throw(Error);
+        done();
+    });
+
+    lab.test('hasHandler', function (done) {
+
+        Code.expect(server.hasHandler('reflect')).to.equal(true);
+        Code.expect(server.hasHandler('nonexistant')).to.equal(false);
+        done();
+    });
+
+    lab.test('connection Ids', function (done) {
+
+        var connectionId;
+        server.expose('saveConnection', function (params, reply) {
+
+            Code.expect(this.id).to.not.equal(undefined);
+            connectionId = this.id;
+            reply(null, 'ok');
+        });
+        client.expose('info', function (params, reply) {
+
+            Code.expect(params).to.be.empty();
+            reply(null, 'info ok');
+        });
+        client.send('saveConnection', undefined, function () {
+
+            Code.expect(connectionId).to.not.equal(undefined);
+            Code.expect(server.getConnection(connectionId)).to.not.equal(undefined);
+            server.send(connectionId, 'info', undefined, function (err, result) {
+
+                Code.expect(result).to.equal('info ok');
+                done();
+            });
+        });
+    });
+    lab.test('invalid connection id', function (done) {
+
+        server.send(0, 'info', undefined); //No callback is ok
+        server.send(0, 'info', undefined, function (err, result) {
+
+            Code.expect(result).to.equal(undefined);
+            Code.expect(err).to.include('code', 'message');
+            Code.expect(err.code).to.equal(-32000);
+            done();
+        });
+    });
+    lab.test('invalid payloads do not throw exceptions', function (done) {
+
+        //This is for code coverage of a lot of the message handler to make sure rogue messages won't take the server down.
+        var socket = WS.createConnection('ws://localhost:8081', function () {
+
+            //TODO socket callbacks + socket.once('message') with response validation for each of these
+            socket.send('asdf\n');
+            socket.send('{}\n'); //Invalid payload (no id)
+            socket.send('{"id":"asdf", "result":"test"}\n'); //Result for invalid id
+            socket.send('{"error":{"code": -32000, "message":"Server error"}}\n'); //Error with no id
+            socket.send('{"id":"adsf"}\n'); //No method
+            socket.send('{"id":"good", "method":"reflect", "params": "string"}\n'); //Invalid params
+            socket.send('{"id":"good", "method":"reflect", "params": null}\n'); //Invalid params
+            //TODO gross
+            setTimeout(done, 100);
+        });
+    });
+    lab.test('client.send', function (done) {
+
+        //No callback
+        client.send('reflect'); //Valid method
+        client.send('nonexistant'); //Invalid method
+        done();
+    });
+    lab.test('client hangups', function (done) {
+
+        var clientA = JsonRpcWs.createClient();
+        var clientB = JsonRpcWs.createClient();
+        //With and without callbacks;
+        clientA.connect('ws://localhost:8081', function () {
+
+            clientA.disconnect(function () {
+
+                clientB.connect('ws://localhost:8081', function () {
+
+                    clientB.disconnect();
+                    done();
+                });
+            });
+
+        });
+    });
+    lab.test('server.start without callback', function (done) {
+
+        var serverA = JsonRpcWs.createServer();
+        serverA.start({ port: 8082 });
+        serverA.server.once('listening', done);
     });
 });
