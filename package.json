@@ -6,7 +6,9 @@
   "scripts": {
     "test": "lab -c",
     "lint": "eslint .",
-    "validate": "npm ls"
+    "validate": "npm ls",
+    "jsdoc": "jsdoc",
+    "docs": "jsdoc . -d docs"
   },
   "keywords": [
     "json-rpc",
@@ -30,6 +32,7 @@
     "code": "^1.4.1",
     "eslint": "^0.23.0",
     "eslint-plugin-hapi": "^1.2.0",
+    "jsdoc": "^3.3.2",
     "lab": "^5.13.0",
     "precommit-hook": "^3.0.0"
   }

@@ -10,6 +10,7 @@ var logger = require('debug')('json-rpc-ws');
  * json-rpc-ws server
  *
  * @constructor
+ * @extends {Base}
  * @public
  */
 var Server = function Server () {
