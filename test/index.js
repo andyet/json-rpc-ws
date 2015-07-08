@@ -39,6 +39,15 @@ lab.experiment('json-rpc ws', function () {
         });
     });
 
+    lab.after(function (done) {
+
+        client.disconnect(function () {
+
+            server.stop();
+            done();
+        });
+    });
+
     lab.test('reflecting handler', function (done) {
 
         client.send('reflect', ['test one'], function (error, reply) {

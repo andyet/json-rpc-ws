@@ -4,6 +4,9 @@ var Hoek = require('hoek');
 
 /**
  * Quarantined JSON.parse try/catch block in its own function
+ *
+ * @param {string} data - json data to be parsed
+ * @returns {object} Parsed json data
  */
 var jsonParse = function jsonParse (data) {
 
@@ -18,11 +21,21 @@ var jsonParse = function jsonParse (data) {
 };
 
 /**
+ * JSON spec requires a reply for every request, but our lib doesn't require a
+ * callback for every sendMethod. We need a dummy callback to throw into responseHandlers
+ * for when the user doesn't supply callback to sendMethod
+ */
+var emptyCallback = function emptyCallback () {
+
+    logger('emptycallback');
+};
+
+/**
  * json-rpc-ws connection
  *
  * @constructor
- * @param {Object} parent that controls this connection
- * @param {Socket} web socket
+ * @param {Socket} socket - web socket for this connection
+ * @param {Object} parent - parent that controls this connection
  */
 var Connection = function Connection (socket, parent) {
 
@@ -33,6 +46,7 @@ var Connection = function Connection (socket, parent) {
     this.responseHandlers = {}; //Response callbacks indexed by id
     this.socket.on('message', this.message.bind(this));
     this.socket.once('close', this.close.bind(this));
+    this.socket.once('error', this.close.bind(this));
 };
 
 /*
@@ -50,11 +64,12 @@ Connection.errors = {
 /**
  * Send json payload to the socket connection
  *
- * @params {Object} payload to be stringified
+ * @param {Object} payload - data to be stringified
+ * @private
+ * @todo make sure this.connection exists, is connected
+ * @todo validate payload
  */
 Connection.prototype.sendRaw = function sendRaw (payload) {
-    //TODO make sure this.connection exists, is connected
-    //TODO validate payload
 
     this.socket.send(JSON.stringify(payload));
 };
@@ -62,10 +77,10 @@ Connection.prototype.sendRaw = function sendRaw (payload) {
 /**
  * Send a result message
  *
- * @param {String} Id for the message
- * @param {Object} Error for the message
- * @param {String} Result for the message
- * @api private
+ * @param {String} id - id for the message
+ * @param {Object} error - error for the message
+ * @param {String} result - result for the message
+ * @public
  *
  */
 Connection.prototype.sendResult = function sendResult (id, error, result) {
@@ -74,7 +89,7 @@ Connection.prototype.sendResult = function sendResult (id, error, result) {
     Hoek.assert(id || error, 'Results must have an id or an error');
     Hoek.assert( !( error && result ), 'Cannot have both an error and a result');
 
-    return this.sendRaw({
+    this.sendRaw({
         jsonrpc: '2.0',
         id: id,
         result: result,
@@ -85,9 +100,10 @@ Connection.prototype.sendResult = function sendResult (id, error, result) {
 /**
  * Send a method message
  *
- * @param {String} method for the message
- * @param {Array} params for the message
- * @param {function} Optional callback for a reply from the message
+ * @param {String} method - method for the message
+ * @param {Array} params  - params for the message
+ * @param {function} callback - optional callback for a reply from the message
+ * @public
  */
 Connection.prototype.sendMethod = function sendMethod (method, params, callback) {
 
@@ -96,6 +112,8 @@ Connection.prototype.sendMethod = function sendMethod (method, params, callback)
 
     if (callback) {
         this.responseHandlers[id] = callback;
+    } else {
+        this.responseHandlers[id] = emptyCallback;
     }
     this.sendRaw({
         jsonrpc: '2.0',
@@ -108,19 +126,26 @@ Connection.prototype.sendMethod = function sendMethod (method, params, callback)
 /**
  * Send an error message
  *
- * @param {Object} error object (See Connection.errors)
+ * @param {Object} error - json-rpc error object (See Connection.errors)
+ * @public
  */
 Connection.prototype.sendError = function sendError (error) {
 
-    return this.sendResult(null, error);
+    this.sendResult(null, error);
 };
 
-/*
+/**
  * Called when socket gets 'close' event
+ *
+ * @param {Error} error - optional error object of close wasn't expected
+ * @private
  */
-Connection.prototype.close = function close () {
+Connection.prototype.close = function close (error) {
 
     logger('close');
+    if (error) {
+        logger('close error', error.stack);
+    }
     this.parent.disconnected(this); //Tell parent what went on so it can track connections
     delete this.socket;
 };
@@ -128,21 +153,29 @@ Connection.prototype.close = function close () {
 /**
  * Hang up the current socket
  *
- * @api public
+ * @param {function} callback - called when socket has been closed
+ * @public
  */
-Connection.prototype.hangup = function hangup () {
+Connection.prototype.hangup = function hangup (callback) {
 
     logger('hangup');
     if (this.socket) {
+        if (typeof callback === 'function') {
+            this.socket.once('error', callback);
+            this.socket.once('close', callback);
+        }
         this.socket.close();
+    } else if (typeof callback === 'function') {
+        callback();
     }
 };
 
 /**
  * Incoming message handler
  *
- * @params {string} message from the websocket
- * @api private
+ * @param {String} data - message from the websocket
+ * @returns {void}
+ * @private
  */
 Connection.prototype.message = function message (data) {
 

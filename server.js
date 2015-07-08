@@ -10,7 +10,7 @@ var logger = require('debug')('json-rpc-ws');
  * json-rpc-ws server
  *
  * @constructor
- * @api public
+ * @public
  */
 var Server = function Server () {
 
@@ -24,9 +24,9 @@ Util.inherits(Server, Base);
 /**
  * Start the server
  *
- * @param {Object} Optional options to pass to the ws server.
- * @param {function} optional Callback which is called once the server has started listening.
- * @api public
+ * @param {Object} options - optional options to pass to the ws server.
+ * @param {function} callback - optional callback which is called once the server has started listening.
+ * @public
  */
 Server.prototype.start = function start (options, callback) {
 
@@ -42,8 +42,8 @@ Server.prototype.start = function start (options, callback) {
 /**
  * Stop the server
  *
- * @param {function} callback to fire after the server has stopped
- * @api public
+ * @todo param {function} callback - called after the server has stopped
+ * @public
  */
 Server.prototype.stop = function stop () {
 

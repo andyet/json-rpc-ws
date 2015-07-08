@@ -6,7 +6,7 @@ var Connection = require('./connection');
  * Base functionality shared by client and server
  *
  * @constructor
- * @api public
+ * @public
  */
 var Base = function Base () {
 
@@ -17,9 +17,9 @@ var Base = function Base () {
 /**
  * Add a handler function for a given method
  *
- * @param {String} method name.
- * @param {function} handler to be passed params for given method.
- * @api public
+ * @param {String} method - name of the method to add handler for.
+ * @param {function} handler - function to be passed params for given method.
+ * @public
  */
 Base.prototype.expose = function expose (method, handler) {
 
@@ -33,8 +33,8 @@ Base.prototype.expose = function expose (method, handler) {
 /**
  * Connected event handler
  *
- * @param {Object} socket object
- * @api private
+ * @param {Object} socket - new socket connection
+ * @private
  */
 Base.prototype.connected = function connected (socket) {
 
@@ -46,8 +46,8 @@ Base.prototype.connected = function connected (socket) {
 /**
  * Disconnected event handler
  *
- * @param {Object} connection object
- * @api private
+ * @param {Object} connection - connection object that has been closed
+ * @private
  */
 Base.prototype.disconnected = function disconnected (connection) {
 
@@ -58,9 +58,9 @@ Base.prototype.disconnected = function disconnected (connection) {
 /**
  * Test if a handler exists for a given method
  *
- * @param {String} method to test
+ * @param {String} method - name of method
  * @returns {Boolean} whether or not there are any handlers for the given method
- * @api public
+ * @public
  */
 Base.prototype.hasHandler = function hasHandler (method) {
 
@@ -73,8 +73,8 @@ Base.prototype.hasHandler = function hasHandler (method) {
 /**
  * Get handlers for a given method
  *
- * @param {String} method name
- * @returns {Array|undefined} handlers for given method, if any
+ * @param {String} method - name of method
+ * @returns {Array|void}  - handlers for given method, if any
  */
 Base.prototype.getHandlers = function getHandler (method) {
 
@@ -84,7 +84,7 @@ Base.prototype.getHandlers = function getHandler (method) {
 /**
  * Shut down all existing connections
  *
- * @api public
+ * @public
  */
 Base.prototype.hangup = function hangup () {
 
@@ -94,7 +94,7 @@ Base.prototype.hangup = function hangup () {
 
         this.connections[id].close();
         delete this.connections[id];
-    });
+    }.bind(this));
 };
 
 module.exports = Base;

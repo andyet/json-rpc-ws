@@ -8,9 +8,9 @@ var logger = require('debug')('json-rpc-ws');
 /*
  * json-rpc-ws client
  *
- * @constructor
  * @param {Object} Parent object, used to find method handlers.
  * @param {Socket} Websocket connection.
+ * @constructor
  */
 var Client = function Client () {
 
@@ -24,9 +24,9 @@ Util.inherits(Client, Base);
 /**
  * Connect to a json-rpc-ws server
  *
- * @param {String} uri to connect to - example: `ws://foo.com/`.
- * @param {function} optional callback to call once socket is connected
- * @api public
+ * @param {String} address - url to connect to i.e. `ws://foo.com/`.
+ * @param {function} callback - optional callback to call once socket is connected
+ * @public
  */
 Client.prototype.connect = function connect (address, callback) {
 
@@ -47,7 +47,7 @@ Client.prototype.connect = function connect (address, callback) {
  * Test whether we have a connection or not
  *
  * @returns {Boolean} whether or not we have a connection
- * @api public
+ * @public
  */
 Client.prototype.isConnected = function isConnected () {
 
@@ -60,7 +60,8 @@ Client.prototype.isConnected = function isConnected () {
 /**
  * Return the current connection (there can be only one)
  *
- * @returns {JsonRpcWs.Connection}
+ * @returns {Object} current connection
+ * @public
  */
 Client.prototype.getConnection = function getConnection () {
 
@@ -72,21 +73,29 @@ Client.prototype.getConnection = function getConnection () {
 /**
  * Close the current connection
  *
- * @api public
+ * @param {function} callback - called when the connection has been closed
+ * @public
  */
-Client.prototype.disconnect = function disconnect () {
+Client.prototype.disconnect = function disconnect (callback) {
 
     if (this.isConnected()) {
-        this.socket.close();
+        var connection = this.getConnection();
+        connection.hangup(callback);
+        return;
+    }
+    if (typeof callback === 'function') {
+        callback();
+        return;
     }
 };
 
 /**
  * Send a method request
  *
- * @param {String} method name
- * @param {Array} Optional params
- * @param {function} optional reply handler
+ * @param {String} method - name of method
+ * @param {Array} params - optional parameters for method
+ * @param {function} callback - optional reply handler
+ * @public
  */
 Client.prototype.send = function send (method, params, callback) {
 

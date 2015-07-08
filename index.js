@@ -1,6 +1,7 @@
 'use strict';
 var Client = require('./client');
 var Server = require('./server');
+var errors = require('./connection').errors;
 var logger = require('debug')('json-rpc-ws');
 
 /*!
@@ -11,13 +12,15 @@ var logger = require('debug')('json-rpc-ws');
 
 var JsonRpcWs = {
     Server: Server,
-    Client: Client
+    Client: Client,
+    errors: errors
 };
 
 /**
  * Create a new server.
  *
- * @returns {JsonRpcWs.Server}
+ * @returns {Object} JsonRpcWs Server instance
+ * @public
  */
 JsonRpcWs.createServer = function createServer () {
 
@@ -29,7 +32,8 @@ JsonRpcWs.createServer = function createServer () {
 /**
  * Create a new json-rpc websocket connection
  *
- * @returns {JsonRpcWs.Client}
+ * @returns {Object}JsonRpcWs Client instance
+ * @public
  */
 JsonRpcWs.createClient = function createClient () {
 
