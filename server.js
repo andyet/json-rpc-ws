@@ -2,7 +2,6 @@
 
 var Base = require('./base');
 var Connection = require('./connection');
-var Hoek = require('hoek');
 var Util = require('util');
 var WebSocket = require('ws');
 var logger = require('debug')('json-rpc-ws');

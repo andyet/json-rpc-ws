@@ -1,10 +1,10 @@
 'use strict';
 var Base = require('./base');
 var Connection = require('./connection');
-var Hoek = require('hoek');
 var Util = require('util');
 var WebSocket = require('ws');
 var logger = require('debug')('json-rpc-ws');
+var assert = require('assert').ok;
 
 /**
  * json-rpc-ws client
@@ -33,7 +33,7 @@ Util.inherits(Client, Base);
 Client.prototype.connect = function connect (address, callback) {
 
     logger('Client connect %s', address);
-    Hoek.assert(!this.isConnected(), 'Already connected');
+    assert(!this.isConnected(), 'Already connected');
     var self = this;
     this.socket = WebSocket.connect(address);
     this.socket.once('open', function clientConnected () {
@@ -80,7 +80,7 @@ Client.prototype.getConnection = function getConnection () {
  */
 Client.prototype.disconnect = function disconnect (callback) {
 
-    Hoek.assert(this.isConnected(), 'Not connected');
+    assert(this.isConnected(), 'Not connected');
     var connection = this.getConnection();
     connection.hangup(callback);
 };
@@ -96,7 +96,7 @@ Client.prototype.disconnect = function disconnect (callback) {
 Client.prototype.send = function send (method, params, callback) {
 
     logger('send %s', method);
-    Hoek.assert(this.isConnected(), 'Not connected');
+    assert(this.isConnected(), 'Not connected');
     var connection = this.getConnection();
     connection.sendMethod(method, params, callback);
 };

@@ -1,6 +1,6 @@
 var uuid = require('uuid').v4;
 var logger = require('debug')('json-rpc-ws');
-var Hoek = require('hoek');
+var assert = require('assert').ok;
 
 /**
  * Quarantined JSON.parse try/catch block in its own function
@@ -85,9 +85,9 @@ Connection.prototype.sendRaw = function sendRaw (payload) {
  */
 Connection.prototype.sendResult = function sendResult (id, error, result) {
 
-    Hoek.assert(error || result, 'Must have an error or a result.');
-    Hoek.assert(id || error, 'Results must have an id or an error');
-    Hoek.assert( !( error && result ), 'Cannot have both an error and a result');
+    assert(error || result, 'Must have an error or a result.');
+    assert(id || error, 'Results must have an id or an error');
+    assert( !( error && result ), 'Cannot have both an error and a result');
 
     this.sendRaw({
         jsonrpc: '2.0',
@@ -160,7 +160,7 @@ Connection.prototype.close = function close (error) {
 Connection.prototype.hangup = function hangup (callback) {
 
     logger('hangup');
-    Hoek.assert('this.socket', 'Not connected');
+    assert(this.socket, 'Not connected');
     if (typeof callback === 'function') {
         this.socket.once('error', callback);
         this.socket.once('close', callback);
