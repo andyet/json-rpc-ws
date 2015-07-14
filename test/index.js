@@ -49,6 +49,12 @@ lab.experiment('json-rpc ws', function () {
         });
     });
 
+    lab.test('client has an id', function (done) {
+
+        Code.expect(client.id).to.not.be.undefined();
+        done();
+    });
+
     lab.test('reflecting handler', function (done) {
 
         client.send('reflect', ['test one'], function (error, reply) {

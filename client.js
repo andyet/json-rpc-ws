@@ -5,6 +5,7 @@ var Util = require('util');
 var WebSocket = require('ws');
 var logger = require('debug')('json-rpc-ws');
 var assert = require('assert').ok;
+var uuid = require('uuid').v4;
 
 /**
  * json-rpc-ws client
@@ -18,6 +19,7 @@ var Client = function Client () {
 
     logger('new Client');
     this.type = 'client';
+    this.id = uuid();
     Base.call(this);
 };
 
