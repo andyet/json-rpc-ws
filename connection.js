@@ -1,12 +1,13 @@
 var uuid = require('uuid').v4;
 var logger = require('debug')('json-rpc-ws');
+var errors = require('./errors');
 var assert = require('assert').ok;
 
 /**
  * Quarantined JSON.parse try/catch block in its own function
  *
- * @param {string} data - json data to be parsed
- * @returns {object} Parsed json data
+ * @param {String} data - json data to be parsed
+ * @returns {Object} Parsed json data
  */
 var jsonParse = function jsonParse (data) {
 
@@ -18,6 +19,60 @@ var jsonParse = function jsonParse (data) {
         payload = null;
     }
     return payload;
+};
+
+/**
+ * Validate payload as valid jsonrpc 2.0
+ * http://www.jsonrpc.org/specification
+ * Reply or delegate as needed
+ *
+ * @param {Object} data - data coming in to be validated
+ * @returns {Object} Parsed payload or error reply
+ */
+var processPayload = function processPayload (data) {
+
+    var version = data.jsonrpc;
+    var id = payload.id;
+    var method = payload.method;
+    var params = payload.params;
+    var result = payload.result;
+    var error = payload.error;
+    if (version !== '2.0') {
+        return this.sendError('invalidRequest', id);
+    }
+    //Will either have a method (request), or result or error (response)
+    if (typeof method === 'string') {
+        var handler = this.parent.getHandler(method);
+        if (!handler) {
+            return this.sendError('methodNotFound', id);
+        }
+        if (params !== null && typeof params !== 'object') {
+            return this.sendError('invalidRequest', id);
+        }
+        logger('message method %s', payload.method);
+        if (id === null) {
+            return handler.call(this, params, emptyCallback);
+        }
+        var handlerCallback = function handlerCallback (err, reply) {
+
+            logger('handler got callback %s, %s', err, reply);
+            return this.sendResult(id, err, reply);
+        }.bind(this);
+        return handler.call(this, params, handlerCallback);
+    }
+    // needs a result or error at this point
+    if (!result && !error) {
+        return this.sendError('invalidRequest', id);
+    }
+    if (id) {
+        logger('message id %s result %s error %s', id, result, error);
+        var responseHandler = this.responseHandlers[payload.id];
+        if (!responseHandler) {
+            return this.sendError('invalidRequest', id);
+        }
+        delete this.responseHandlers[payload.id];
+        return responseHandler.call(this, error, result);
+    }
 };
 
 /**
@@ -71,6 +126,7 @@ Connection.errors = {
  */
 Connection.prototype.sendRaw = function sendRaw (payload) {
 
+    payload.jsonrpc = '2.0';
     this.socket.send(JSON.stringify(payload));
 };
 
@@ -90,7 +146,6 @@ Connection.prototype.sendResult = function sendResult (id, error, result) {
     assert( !( error && result ), 'Cannot have both an error and a result');
 
     this.sendRaw({
-        jsonrpc: '2.0',
         id: id,
         result: result,
         error: error
@@ -116,7 +171,6 @@ Connection.prototype.sendMethod = function sendMethod (method, params, callback)
         this.responseHandlers[id] = emptyCallback;
     }
     this.sendRaw({
-        jsonrpc: '2.0',
         id: id,
         method: method,
         params: params || []
@@ -127,12 +181,15 @@ Connection.prototype.sendMethod = function sendMethod (method, params, callback)
  * Send an error message
  *
  * @param {Object} error - json-rpc error object (See Connection.errors)
+ * @param {String|Number|null} id - Optional id for reply
+ * @param {Any} data - Optional value for data portion of reply
  * @public
  */
-Connection.prototype.sendError = function sendError (error) {
+Connection.prototype.sendError = function sendError (error, id, data) {
 
-    logger('sendError', error);
-    this.sendResult(null, error);
+    logger('sendError %s', error);
+    //TODO if id matches a responseHandler, we should dump it right?
+    this.sendRaw(errors(error, id, data));
 };
 
 /**
@@ -177,47 +234,22 @@ Connection.prototype.hangup = function hangup (callback) {
  */
 Connection.prototype.message = function message (data) {
 
+    //Validate as json first, easy reply if it's not
+    //If it's an array iterate and handle
+    //If it's an object handle
+    //name of handle function ?!?!?
     logger('message');
     var payload = jsonParse(data);
 
     if (payload === null) {
-        return this.sendError(Connection.errors.parseError);
+        return errors(parseError);
     }
-    if (!payload.id && !payload.error) {
-        return this.sendError(Connection.errors.invalidRequest);
+    //Object or array
+    if (payload instanceof Array) {
+        payload.forEach(this.processPayload, this);
+    } else {
+        this.processPayload(payload);
     }
-    if (payload.result || payload.error) {
-        logger('message result %s id %s error %s', payload.result, payload.id, payload.error);
-        if (!payload.id) {
-            return;
-        }
-        var responseHandler = this.responseHandlers[payload.id];
-        if (!responseHandler) {
-            return this.sendError(Connection.errors.invalidRequest);
-        }
-        delete this.responseHandlers[payload.id];
-        return responseHandler.call(this, payload.error, payload.result);
-    }
-    if (!payload.method) {
-        return this.sendError(Connection.errors.invalidRequest);
-    }
-    logger('message method %s', payload.method);
-    if (!this.parent.hasHandler(payload.method)) {
-        return this.sendError(Connection.errors.methodNotFound);
-    }
-    if (payload.params && !(payload.params instanceof Array)) {
-        return this.sendError(Connection.errors.invalidParams);
-    }
-    var params = payload.params || [];
-    var handler = this.parent.getHandler(payload.method);
-    var handlerCallback = function handlerCallback (err, result) {
-
-        logger('handler got callback %s, %s', err, result);
-        return this.sendResult(payload.id, err, result);
-    }.bind(this);
-    logger('calling handler %s', payload.method);
-    handler.call(this, params, handlerCallback);
 };
-
 
 module.exports = Connection;
