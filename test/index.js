@@ -174,14 +174,6 @@ lab.experiment('json-rpc ws', function () {
             socket.send('{"jsonrpc":"2.0", "error":{"code": -32000, "message":"Server error"}}\n');
             socket.send('{"jsonrpc":"2.0", "id":"asdf", "result":"test"}\n');
             socket.send('[{"jsonrpc":"2.0", "result":"test"},{"jsonrpc":"2.0", "result":"rest"}]');
-            //socket.send('{"jsonrpc":"2.0", "method":"reflect", "id":[0], "params":null}\n');
-            //socket.send('{"jsonrpc":"2.0", "id":null}\n'); //Null id
-            //socket.send('{"jsonrpc":"2.0", "id":0}\n'); //Numeric id
-            //socket.send('{"jsonrpc":"2.0", "id":"asdf"}\n'); //String id
-            //socket.send('{"jsonrpc":"2.0", "id":["a"]}\n'); //Array id
-            //socket.send('{"jsonrpc":"2.0", "id":"asdf", "result":"test"}\n'); //Result for invalid id
-            //socket.send('{"jsonrpc":"2.0", "id":"adsf"}\n'); //No method
-            //socket.send('{"jsonrpc":"2.0", "id":"good", "method":"reflect", "params": "string"}\n'); //Invalid params
             setTimeout(done, 100);
         });
     });
