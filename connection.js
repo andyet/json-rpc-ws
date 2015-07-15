@@ -1,6 +1,6 @@
 var uuid = require('uuid').v4;
 var logger = require('debug')('json-rpc-ws');
-var errors = require('./errors');
+var Errors = require('./errors');
 var assert = require('assert').ok;
 
 /**
@@ -89,11 +89,14 @@ Connection.prototype.processPayload = function processPayload (payload) {
         if (!handler) {
             return this.sendError('methodNotFound', id, { info: 'no handler found for method ' + method });
         }
+        if (id !== undefined && id !== null && typeof id !== 'string' && typeof id !== 'number') {
+            return this.sendError('invalidRequest', id, { info: 'id, if provided, must be one of: null, string, number' });
+        }
         if (params !== null && typeof params !== 'object') {
             return this.sendError('invalidRequest', id, { info: 'params must be one of: null, object, array' });
         }
         logger('message method %s', payload.method);
-        if (id === null) {
+        if (id === null || id === undefined) {
             return handler.call(this, params, emptyCallback);
         }
         var handlerCallback = function handlerCallback (err, reply) {
@@ -104,7 +107,7 @@ Connection.prototype.processPayload = function processPayload (payload) {
         return handler.call(this, params, handlerCallback);
     }
     // needs a result or error at this point
-    if (!result && !error) {
+    if (result === undefined && error === undefined) {
         return this.sendError('invalidRequest', id, { info: 'replies must have either a result or error' });
     }
     if (typeof id === 'string' || typeof id === 'number') {
@@ -129,8 +132,8 @@ Connection.prototype.processPayload = function processPayload (payload) {
  */
 Connection.prototype.sendResult = function sendResult (id, error, result) {
 
+    logger('sendResult %s %j %j', id, error, result);
     assert(error || result, 'Must have an error or a result.');
-    assert(id || error, 'Results must have an id or an error');
     assert( !( error && result ), 'Cannot have both an error and a result');
 
     this.sendRaw({
@@ -144,15 +147,16 @@ Connection.prototype.sendResult = function sendResult (id, error, result) {
  * Send a method message
  *
  * @param {String} method - method for the message
- * @param {Array} params  - params for the message
+ * @param {Array|null} params  - params for the message
  * @param {function} callback - optional callback for a reply from the message
  * @public
  */
 Connection.prototype.sendMethod = function sendMethod (method, params, callback) {
 
     var id = uuid();
+    assert((typeof method === 'string') && (method.length > 0), 'method must be a non-empty string');
+    assert(params === null || params instanceof Array, 'params must be an array or null');
     logger('sendMethod %s', method, id);
-
     if (callback) {
         this.responseHandlers[id] = callback;
     } else {
@@ -161,7 +165,7 @@ Connection.prototype.sendMethod = function sendMethod (method, params, callback)
     this.sendRaw({
         id: id,
         method: method,
-        params: params || []
+        params: params
     });
 };
 
@@ -177,7 +181,7 @@ Connection.prototype.sendError = function sendError (error, id, data) {
 
     logger('sendError %s', error);
     //TODO if id matches a responseHandler, we should dump it right?
-    this.sendRaw(errors(error, id, data));
+    this.sendRaw(Errors(error, id, data));
 };
 
 /**
@@ -230,7 +234,7 @@ Connection.prototype.message = function message (data) {
     var payload = jsonParse(data);
 
     if (payload === null) {
-        return errors('parseError');
+        return Errors('parseError');
     }
     //Object or array
     if (payload instanceof Array) {

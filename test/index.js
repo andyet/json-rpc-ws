@@ -18,7 +18,7 @@ lab.experiment('json-rpc ws', function () {
         server.expose('reflect', function (params, reply) {
 
 
-            reply(null, params);
+            reply(null, params || 'empty');
         });
         server.expose('delay', function (params, reply) {
 
@@ -51,7 +51,7 @@ lab.experiment('json-rpc ws', function () {
 
     lab.test('client has an id', function (done) {
 
-        Code.expect(client.id).to.not.be.undefined();
+        Code.expect(client.id).to.not.equal(undefined);
         done();
     });
 
@@ -62,12 +62,13 @@ lab.experiment('json-rpc ws', function () {
             Code.expect(error1).to.be.null();
             Code.expect(reply1).to.have.length(1);
             Code.expect(reply1[0]).to.equal('test one');
-            client.send('reflect', null, function (error2, reply2) {
+            client.send('reflect', ['test two'], function (error2, reply2) {
 
-                Code.expect(error2).to.eqal(null);
-                Code.expect(reply2).to.equal(null);
+                Code.expect(error2).to.equal(null);
+                Code.expect(reply2).to.have.length(1);
+                Code.expect(reply2[0]).to.equal('test two');
+                done();
             });
-            done();
         });
     });
 
@@ -129,14 +130,14 @@ lab.experiment('json-rpc ws', function () {
         });
         client.expose('info', function (params, reply) {
 
-            Code.expect(params).to.be.empty();
+            Code.expect(params).to.equal(null);
             reply(null, 'info ok');
         });
-        client.send('saveConnection', undefined, function () {
+        client.send('saveConnection', null, function () {
 
             Code.expect(connectionId).to.not.equal(undefined);
             Code.expect(server.getConnection(connectionId)).to.not.equal(undefined);
-            server.send(connectionId, 'info', undefined, function (err, result) {
+            server.send(connectionId, 'info', null, function (err, result) {
 
                 Code.expect(result).to.equal('info ok');
                 done();
@@ -156,26 +157,43 @@ lab.experiment('json-rpc ws', function () {
     });
     lab.test('invalid payloads do not throw exceptions', function (done) {
 
-        //This is for code coverage of a lot of the message handler to make sure rogue messages won't take the server down.
+        //This is for code coverage in the message handler to make sure rogue messages won't take the server down.
         var socket = WS.createConnection('ws://localhost:8081', function () {
 
-            //TODO socket callbacks + socket.once('message') with response validation for each of these
-            socket.send('asdf\n'); //Not even json
-            socket.send('{}\n'); //Invalid payload (no jsonrpc="2.0")
-            socket.send('{"jsonrpc":"2.0"}\n'); //No id
-            socket.send('{"jsonrpc":"2.0", "id":"asdf", "result":"test"}\n'); //Result for invalid id
-            socket.send('{"jsonrpc":"2.0", "error":{"code": -32000, "message":"Server error"}}\n'); //Error with no id
-            socket.send('{"jsonrpc":"2.0", "id":"adsf"}\n'); //No method
-            socket.send('{"jsonrpc":"2.0", "id":"good", "method":"reflect", "params": "string"}\n'); //Invalid params
-            //TODO gross
+            //TODO socket callbacks + socket.once('message') with response validation for each of these instead of this setTimeout nonsense
+            socket.send('asdf\n');
+            socket.send('{}\n');
+            socket.send('{"jsonrpc":"2.0"}\n');
+            socket.send('{"jsonrpc":"2.0", "method":"reflect"}\n');
+            socket.send('{"jsonrpc":"2.0", "method":"reflect", "id":null}\n');
+            socket.send('{"jsonrpc":"2.0", "method":"reflect", "id":"asdf"}\n');
+            socket.send('{"jsonrpc":"2.0", "method":"reflect", "id":0}\n');
+            socket.send('{"jsonrpc":"2.0", "method":"reflect", "id":[0]}\n');
+            socket.send('{"jsonrpc":"2.0", "method":"reflect", "params":null}\n');
+            socket.send('{"jsonrpc":"2.0", "method":"reflect", "id":null, "params":null}\n');
+            socket.send('{"jsonrpc":"2.0", "error":{"code": -32000, "message":"Server error"}}\n');
+            socket.send('{"jsonrpc":"2.0", "id":"asdf", "result":"test"}\n');
+            socket.send('[{"jsonrpc":"2.0", "result":"test"},{"jsonrpc":"2.0", "result":"rest"}]');
+            //socket.send('{"jsonrpc":"2.0", "method":"reflect", "id":[0], "params":null}\n');
+            //socket.send('{"jsonrpc":"2.0", "id":null}\n'); //Null id
+            //socket.send('{"jsonrpc":"2.0", "id":0}\n'); //Numeric id
+            //socket.send('{"jsonrpc":"2.0", "id":"asdf"}\n'); //String id
+            //socket.send('{"jsonrpc":"2.0", "id":["a"]}\n'); //Array id
+            //socket.send('{"jsonrpc":"2.0", "id":"asdf", "result":"test"}\n'); //Result for invalid id
+            //socket.send('{"jsonrpc":"2.0", "id":"adsf"}\n'); //No method
+            //socket.send('{"jsonrpc":"2.0", "id":"good", "method":"reflect", "params": "string"}\n'); //Invalid params
             setTimeout(done, 100);
         });
     });
     lab.test('client.send', function (done) {
 
         //No callback
-        client.send('reflect'); //Valid method
-        client.send('nonexistant'); //Invalid method
+        client.send('reflect', null); //Valid method
+        client.send('nonexistant', null); //Unexposed method
+        Code.expect(function () {
+
+            client.send(1, null); //Invalid method
+        }).to.throw(Error);
         done();
     });
     lab.test('client hangups', function (done) {
