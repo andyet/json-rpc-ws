@@ -22,60 +22,6 @@ var jsonParse = function jsonParse (data) {
 };
 
 /**
- * Validate payload as valid jsonrpc 2.0
- * http://www.jsonrpc.org/specification
- * Reply or delegate as needed
- *
- * @param {Object} data - data coming in to be validated
- * @returns {Object} Parsed payload or error reply
- */
-var processPayload = function processPayload (data) {
-
-    var version = data.jsonrpc;
-    var id = payload.id;
-    var method = payload.method;
-    var params = payload.params;
-    var result = payload.result;
-    var error = payload.error;
-    if (version !== '2.0') {
-        return this.sendError('invalidRequest', id);
-    }
-    //Will either have a method (request), or result or error (response)
-    if (typeof method === 'string') {
-        var handler = this.parent.getHandler(method);
-        if (!handler) {
-            return this.sendError('methodNotFound', id);
-        }
-        if (params !== null && typeof params !== 'object') {
-            return this.sendError('invalidRequest', id);
-        }
-        logger('message method %s', payload.method);
-        if (id === null) {
-            return handler.call(this, params, emptyCallback);
-        }
-        var handlerCallback = function handlerCallback (err, reply) {
-
-            logger('handler got callback %s, %s', err, reply);
-            return this.sendResult(id, err, reply);
-        }.bind(this);
-        return handler.call(this, params, handlerCallback);
-    }
-    // needs a result or error at this point
-    if (!result && !error) {
-        return this.sendError('invalidRequest', id);
-    }
-    if (id) {
-        logger('message id %s result %s error %s', id, result, error);
-        var responseHandler = this.responseHandlers[payload.id];
-        if (!responseHandler) {
-            return this.sendError('invalidRequest', id);
-        }
-        delete this.responseHandlers[payload.id];
-        return responseHandler.call(this, error, result);
-    }
-};
-
-/**
  * JSON spec requires a reply for every request, but our lib doesn't require a
  * callback for every sendMethod. We need a dummy callback to throw into responseHandlers
  * for when the user doesn't supply callback to sendMethod
@@ -104,18 +50,6 @@ var Connection = function Connection (socket, parent) {
     this.socket.once('error', this.close.bind(this));
 };
 
-/*
- * http://www.jsonrpc.org/specification#error_object
- */
-Connection.errors = {
-    parseError: { code: -32700, message: 'Parse error' },
-    invalidRequest: { code: -32600, message: 'Invalid Request' },
-    methodNotFound: { code: -32601, message: 'Method not found' },
-    invalidParams: { code: -32602, message: 'Invalid params' },
-    internalError: { code: -32603, message: 'Internal error' },
-    serverError: { code: -32000, message: 'Server error' }
-};
-
 /**
  * Send json payload to the socket connection
  *
@@ -128,6 +62,60 @@ Connection.prototype.sendRaw = function sendRaw (payload) {
 
     payload.jsonrpc = '2.0';
     this.socket.send(JSON.stringify(payload));
+};
+
+/**
+ * Validate payload as valid jsonrpc 2.0
+ * http://www.jsonrpc.org/specification
+ * Reply or delegate as needed
+ *
+ * @param {Object} payload - payload coming in to be validated
+ * @returns {void}
+ */
+Connection.prototype.processPayload = function processPayload (payload) {
+
+    var version = payload.jsonrpc;
+    var id = payload.id;
+    var method = payload.method;
+    var params = payload.params;
+    var result = payload.result;
+    var error = payload.error;
+    if (version !== '2.0') {
+        return this.sendError('invalidRequest', id, { info: 'jsonrpc must be exactly "2.0"' });
+    }
+    //Will either have a method (request), or result or error (response)
+    if (typeof method === 'string') {
+        var handler = this.parent.getHandler(method);
+        if (!handler) {
+            return this.sendError('methodNotFound', id, { info: 'no handler found for method ' + method });
+        }
+        if (params !== null && typeof params !== 'object') {
+            return this.sendError('invalidRequest', id, { info: 'params must be one of: null, object, array' });
+        }
+        logger('message method %s', payload.method);
+        if (id === null) {
+            return handler.call(this, params, emptyCallback);
+        }
+        var handlerCallback = function handlerCallback (err, reply) {
+
+            logger('handler got callback %s, %s', err, reply);
+            return this.sendResult(id, err, reply);
+        }.bind(this);
+        return handler.call(this, params, handlerCallback);
+    }
+    // needs a result or error at this point
+    if (!result && !error) {
+        return this.sendError('invalidRequest', id, { info: 'replies must have either a result or error' });
+    }
+    if (typeof id === 'string' || typeof id === 'number') {
+        logger('message id %s result %s error %s', id, result, error);
+        var responseHandler = this.responseHandlers[payload.id];
+        if (!responseHandler) {
+            return this.sendError('invalidRequest', id, { info: 'no response handler for id ' + id });
+        }
+        delete this.responseHandlers[payload.id];
+        return responseHandler.call(this, error, result);
+    }
 };
 
 /**
@@ -242,7 +230,7 @@ Connection.prototype.message = function message (data) {
     var payload = jsonParse(data);
 
     if (payload === null) {
-        return errors(parseError);
+        return errors('parseError');
     }
     //Object or array
     if (payload instanceof Array) {

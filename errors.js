@@ -1,3 +1,6 @@
+var logger = require('debug')('json-rpc-ws');
+var assert = require('assert').ok;
+
 /*
  * http://www.jsonrpc.org/specification#error_object
  */
@@ -20,16 +23,17 @@ var errors = {
  */
 module.exports = function getError (type, id, data) {
 
-    assert(errors[name], 'Invalid error type ' + type);
+    assert(errors[type], 'Invalid error type ' + type);
 
     var payload = {
-        error: errors[name]
+        error: errors[type]
     };
-    if (id !== null) {
+    if (typeof id === 'string' || typeof id === 'number') {
         payload.id = id;
     }
-    if (data !== null) {
+    if (data !== undefined) {
         payload.error.data = data;
     }
-    return data;
+    logger('error %j', payload);
+    return payload;
 };

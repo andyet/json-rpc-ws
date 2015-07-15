@@ -57,11 +57,16 @@ lab.experiment('json-rpc ws', function () {
 
     lab.test('reflecting handler', function (done) {
 
-        client.send('reflect', ['test one'], function (error, reply) {
+        client.send('reflect', ['test one'], function (error1, reply1) {
 
-            Code.expect(error).to.be.null();
-            Code.expect(reply).to.have.length(1);
-            Code.expect(reply[0]).to.equal('test one');
+            Code.expect(error1).to.be.null();
+            Code.expect(reply1).to.have.length(1);
+            Code.expect(reply1[0]).to.equal('test one');
+            client.send('reflect', null, function (error2, reply2) {
+
+                Code.expect(error2).to.eqal(null);
+                Code.expect(reply2).to.equal(null);
+            });
             done();
         });
     });
@@ -155,13 +160,13 @@ lab.experiment('json-rpc ws', function () {
         var socket = WS.createConnection('ws://localhost:8081', function () {
 
             //TODO socket callbacks + socket.once('message') with response validation for each of these
-            socket.send('asdf\n');
-            socket.send('{}\n'); //Invalid payload (no id)
-            socket.send('{"id":"asdf", "result":"test"}\n'); //Result for invalid id
-            socket.send('{"error":{"code": -32000, "message":"Server error"}}\n'); //Error with no id
-            socket.send('{"id":"adsf"}\n'); //No method
-            socket.send('{"id":"good", "method":"reflect", "params": "string"}\n'); //Invalid params
-            socket.send('{"id":"good", "method":"reflect", "params": null}\n'); //Invalid params
+            socket.send('asdf\n'); //Not even json
+            socket.send('{}\n'); //Invalid payload (no jsonrpc="2.0")
+            socket.send('{"jsonrpc":"2.0"}\n'); //No id
+            socket.send('{"jsonrpc":"2.0", "id":"asdf", "result":"test"}\n'); //Result for invalid id
+            socket.send('{"jsonrpc":"2.0", "error":{"code": -32000, "message":"Server error"}}\n'); //Error with no id
+            socket.send('{"jsonrpc":"2.0", "id":"adsf"}\n'); //No method
+            socket.send('{"jsonrpc":"2.0", "id":"good", "method":"reflect", "params": "string"}\n'); //Invalid params
             //TODO gross
             setTimeout(done, 100);
         });
@@ -196,5 +201,23 @@ lab.experiment('json-rpc ws', function () {
         var serverA = JsonRpcWs.createServer();
         serverA.start({ port: 8082 });
         serverA.server.once('listening', done);
+    });
+
+    lab.test('errors', function (done) {
+
+        var payload;
+        payload = JsonRpcWs.Errors('parseError');
+        Code.expect(payload.id).to.equal(undefined);
+        Code.expect(payload.error).to.include('code', 'message');
+        Code.expect(payload.error.data).to.equal(undefined);
+        payload = JsonRpcWs.Errors('parseError', 'a');
+        Code.expect(payload.id).to.equal('a');
+        Code.expect(payload.error).to.include('code', 'message');
+        Code.expect(payload.error.data).to.equal(undefined);
+        payload = JsonRpcWs.Errors('parseError', 'b', { extra: 'data' });
+        Code.expect(payload.id).to.equal('b');
+        Code.expect(payload.error).to.include('code', 'message');
+        Code.expect(payload.error.data).to.deep.equal({ extra: 'data' });
+        done();
     });
 });
