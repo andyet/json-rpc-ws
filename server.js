@@ -2,6 +2,7 @@
 
 var Base = require('./base');
 var Connection = require('./connection');
+var Errors = require('./errors');
 var Util = require('util');
 var WebSocket = require('ws');
 var logger = require('debug')('json-rpc-ws');
@@ -70,7 +71,7 @@ Server.prototype.send = function send (id, method, params, callback) {
     if (connection) {
         connection.sendMethod(method, params, callback);
     } else if (typeof callback === 'function') {
-        callback(Connection.errors.serverError);
+        callback(Errors('serverError').error);
     }
 };
 

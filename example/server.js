@@ -19,5 +19,5 @@ server.expose('delay', function delay (params, reply) {
 
 server.start({ port: 8080 }, function started () {
 
-    logger('Server started');
+    logger('Server started on port 8080');
 });

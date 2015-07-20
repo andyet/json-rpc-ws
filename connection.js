@@ -1,12 +1,13 @@
 var uuid = require('uuid').v4;
 var logger = require('debug')('json-rpc-ws');
+var Errors = require('./errors');
 var assert = require('assert').ok;
 
 /**
  * Quarantined JSON.parse try/catch block in its own function
  *
- * @param {string} data - json data to be parsed
- * @returns {object} Parsed json data
+ * @param {String} data - json data to be parsed
+ * @returns {Object} Parsed json data
  */
 var jsonParse = function jsonParse (data) {
 
@@ -49,18 +50,6 @@ var Connection = function Connection (socket, parent) {
     this.socket.once('error', this.close.bind(this));
 };
 
-/*
- * http://www.jsonrpc.org/specification#error_object
- */
-Connection.errors = {
-    parseError: { code: -32700, message: 'Parse error' },
-    invalidRequest: { code: -32600, message: 'Invalid Request' },
-    methodNotFound: { code: -32601, message: 'Method not found' },
-    invalidParams: { code: -32602, message: 'Invalid params' },
-    internalError: { code: -32603, message: 'Internal error' },
-    serverError: { code: -32000, message: 'Server error' }
-};
-
 /**
  * Send json payload to the socket connection
  *
@@ -71,7 +60,65 @@ Connection.errors = {
  */
 Connection.prototype.sendRaw = function sendRaw (payload) {
 
+    payload.jsonrpc = '2.0';
     this.socket.send(JSON.stringify(payload));
+};
+
+/**
+ * Validate payload as valid jsonrpc 2.0
+ * http://www.jsonrpc.org/specification
+ * Reply or delegate as needed
+ *
+ * @param {Object} payload - payload coming in to be validated
+ * @returns {void}
+ */
+Connection.prototype.processPayload = function processPayload (payload) {
+
+    var version = payload.jsonrpc;
+    var id = payload.id;
+    var method = payload.method;
+    var params = payload.params;
+    var result = payload.result;
+    var error = payload.error;
+    if (version !== '2.0') {
+        return this.sendError('invalidRequest', id, { info: 'jsonrpc must be exactly "2.0"' });
+    }
+    //Will either have a method (request), or result or error (response)
+    if (typeof method === 'string') {
+        var handler = this.parent.getHandler(method);
+        if (!handler) {
+            return this.sendError('methodNotFound', id, { info: 'no handler found for method ' + method });
+        }
+        if (id !== undefined && id !== null && typeof id !== 'string' && typeof id !== 'number') {
+            return this.sendError('invalidRequest', id, { info: 'id, if provided, must be one of: null, string, number' });
+        }
+        if (params !== null && typeof params !== 'object') {
+            return this.sendError('invalidRequest', id, { info: 'params must be one of: null, object, array' });
+        }
+        logger('message method %s', payload.method);
+        if (id === null || id === undefined) {
+            return handler.call(this, params, emptyCallback);
+        }
+        var handlerCallback = function handlerCallback (err, reply) {
+
+            logger('handler got callback %s, %s', err, reply);
+            return this.sendResult(id, err, reply);
+        }.bind(this);
+        return handler.call(this, params, handlerCallback);
+    }
+    // needs a result or error at this point
+    if (result === undefined && error === undefined) {
+        return this.sendError('invalidRequest', id, { info: 'replies must have either a result or error' });
+    }
+    if (typeof id === 'string' || typeof id === 'number') {
+        logger('message id %s result %s error %s', id, result, error);
+        var responseHandler = this.responseHandlers[payload.id];
+        if (!responseHandler) {
+            return this.sendError('invalidRequest', id, { info: 'no response handler for id ' + id });
+        }
+        delete this.responseHandlers[payload.id];
+        return responseHandler.call(this, error, result);
+    }
 };
 
 /**
@@ -85,12 +132,11 @@ Connection.prototype.sendRaw = function sendRaw (payload) {
  */
 Connection.prototype.sendResult = function sendResult (id, error, result) {
 
+    logger('sendResult %s %j %j', id, error, result);
     assert(error || result, 'Must have an error or a result.');
-    assert(id || error, 'Results must have an id or an error');
     assert( !( error && result ), 'Cannot have both an error and a result');
 
     this.sendRaw({
-        jsonrpc: '2.0',
         id: id,
         result: result,
         error: error
@@ -101,25 +147,25 @@ Connection.prototype.sendResult = function sendResult (id, error, result) {
  * Send a method message
  *
  * @param {String} method - method for the message
- * @param {Array} params  - params for the message
+ * @param {Array|null} params  - params for the message
  * @param {function} callback - optional callback for a reply from the message
  * @public
  */
 Connection.prototype.sendMethod = function sendMethod (method, params, callback) {
 
     var id = uuid();
+    assert((typeof method === 'string') && (method.length > 0), 'method must be a non-empty string');
+    assert(params === null || params instanceof Array, 'params must be an array or null');
     logger('sendMethod %s', method, id);
-
     if (callback) {
         this.responseHandlers[id] = callback;
     } else {
         this.responseHandlers[id] = emptyCallback;
     }
     this.sendRaw({
-        jsonrpc: '2.0',
         id: id,
         method: method,
-        params: params || []
+        params: params
     });
 };
 
@@ -127,12 +173,15 @@ Connection.prototype.sendMethod = function sendMethod (method, params, callback)
  * Send an error message
  *
  * @param {Object} error - json-rpc error object (See Connection.errors)
+ * @param {String|Number|null} id - Optional id for reply
+ * @param {Any} data - Optional value for data portion of reply
  * @public
  */
-Connection.prototype.sendError = function sendError (error) {
+Connection.prototype.sendError = function sendError (error, id, data) {
 
-    logger('sendError', error);
-    this.sendResult(null, error);
+    logger('sendError %s', error);
+    //TODO if id matches a responseHandler, we should dump it right?
+    this.sendRaw(Errors(error, id, data));
 };
 
 /**
@@ -177,47 +226,22 @@ Connection.prototype.hangup = function hangup (callback) {
  */
 Connection.prototype.message = function message (data) {
 
+    //Validate as json first, easy reply if it's not
+    //If it's an array iterate and handle
+    //If it's an object handle
+    //name of handle function ?!?!?
     logger('message');
     var payload = jsonParse(data);
 
     if (payload === null) {
-        return this.sendError(Connection.errors.parseError);
+        return Errors('parseError');
     }
-    if (!payload.id && !payload.error) {
-        return this.sendError(Connection.errors.invalidRequest);
+    //Object or array
+    if (payload instanceof Array) {
+        payload.forEach(this.processPayload, this);
+    } else {
+        this.processPayload(payload);
     }
-    if (payload.result || payload.error) {
-        logger('message result %s id %s error %s', payload.result, payload.id, payload.error);
-        if (!payload.id) {
-            return;
-        }
-        var responseHandler = this.responseHandlers[payload.id];
-        if (!responseHandler) {
-            return this.sendError(Connection.errors.invalidRequest);
-        }
-        delete this.responseHandlers[payload.id];
-        return responseHandler.call(this, payload.error, payload.result);
-    }
-    if (!payload.method) {
-        return this.sendError(Connection.errors.invalidRequest);
-    }
-    logger('message method %s', payload.method);
-    if (!this.parent.hasHandler(payload.method)) {
-        return this.sendError(Connection.errors.methodNotFound);
-    }
-    if (payload.params && !(payload.params instanceof Array)) {
-        return this.sendError(Connection.errors.invalidParams);
-    }
-    var params = payload.params || [];
-    var handler = this.parent.getHandler(payload.method);
-    var handlerCallback = function handlerCallback (err, result) {
-
-        logger('handler got callback %s, %s', err, result);
-        return this.sendResult(payload.id, err, result);
-    }.bind(this);
-    logger('calling handler %s', payload.method);
-    handler.call(this, params, handlerCallback);
 };
-
 
 module.exports = Connection;

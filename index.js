@@ -1,7 +1,7 @@
 'use strict';
 var Client = require('./client');
 var Server = require('./server');
-var errors = require('./connection').errors;
+var Errors = require('./errors');
 var logger = require('debug')('json-rpc-ws');
 
 /*!
@@ -13,7 +13,7 @@ var logger = require('debug')('json-rpc-ws');
 var JsonRpcWs = {
     Server: Server,
     Client: Client,
-    errors: errors
+    Errors: Errors
 };
 
 /**
