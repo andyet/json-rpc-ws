@@ -4,7 +4,7 @@
   "description": "json-rpc websocket transport",
   "main": "index.js",
   "scripts": {
-    "test": "lab -c",
+    "test": "lab",
     "lint": "eslint .",
     "validate": "npm ls",
     "jsdoc": "jsdoc",
@@ -19,6 +19,7 @@
   "private": true,
   "dependencies": {
     "debug": "^2.2.0",
+    "lodash.bind": "^3.1.0",
     "uuid": "^2.0.1",
     "ws": "^0.7.2"
   },
@@ -27,12 +28,19 @@
     "validate",
     "test"
   ],
+  "files": [
+    "index.js",
+    "lib/*"
+  ],
   "devDependencies": {
+    "browserify": "^11.0.0",
     "code": "^1.4.1",
     "eslint": "^0.23.0",
     "eslint-plugin-hapi": "^1.2.0",
     "jsdoc": "^3.3.2",
     "lab": "^5.13.0",
-    "precommit-hook": "^3.0.0"
+    "phantomjs": "^1.9.17",
+    "precommit-hook": "^3.0.0",
+    "selenium-webdriver": "^2.46.1"
   }
 }

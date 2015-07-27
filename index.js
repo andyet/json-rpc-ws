@@ -1,7 +1,7 @@
 'use strict';
-var Client = require('./client');
-var Server = require('./server');
-var Errors = require('./errors');
+var Client = require('./lib/client');
+var Server = require('./lib/server');
+var Errors = require('./lib/errors');
 var logger = require('debug')('json-rpc-ws');
 
 /*!

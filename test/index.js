@@ -3,6 +3,8 @@ var Code = require('code');
 var Lab = require('lab');
 var WS = require('ws');
 var JsonRpcWs = require('../');
+var Browserify = require('browserify');
+var Webdriver = require('selenium-webdriver');
 
 Code.settings.truncateMessages = false;
 var lab = exports.lab = Lab.script();
@@ -11,6 +13,7 @@ lab.experiment('json-rpc ws', function () {
 
     var server = JsonRpcWs.createServer();
     var client = JsonRpcWs.createClient();
+    var browserParams;
     var delayBuffer = [];
 
     lab.before(function (done) {
@@ -32,6 +35,10 @@ lab.experiment('json-rpc ws', function () {
         server.expose('error', function (params, reply) {
 
             reply('error', null);
+        });
+        server.expose('browserClient', function (params, reply) {
+
+            reply(null, this.id);
         });
 
         server.start({ host: 'localhost', port: 8081 }, function () {
@@ -157,7 +164,7 @@ lab.experiment('json-rpc ws', function () {
     });
     lab.test('invalid payloads do not throw exceptions', function (done) {
 
-        //This is for code coverage in the message handler to make sure rogue messages won't take the server down.
+        //This is for code coverage in the message handler to make sure rogue messages won't take the server down.;
         var socket = WS.createConnection('ws://localhost:8081', function () {
 
             //TODO socket callbacks + socket.once('message') with response validation for each of these instead of this setTimeout nonsense
@@ -229,5 +236,57 @@ lab.experiment('json-rpc ws', function () {
         Code.expect(payload.error).to.include('code', 'message');
         Code.expect(payload.error.data).to.deep.equal({ extra: 'data' });
         done();
+    });
+
+    lab.experiment('browser', function () {
+
+        var script;
+        lab.before(function (done) {
+
+            process.env.PATH = process.env.PATH + ':./node_modules/.bin';
+            var b = Browserify();
+            b.add('./browser/index.js');
+            b.bundle(function (err, buf) {
+
+                Code.expect(err).to.not.exist();
+                script = buf.toString();
+                done();
+            });
+        });
+
+        lab.test('works in browser', function (done) {
+
+            Code.expect(script).to.not.equal('');
+            var driver = new Webdriver.Builder().forBrowser('phantomjs').build();
+            driver.executeScript(script).then(function () {
+
+                driver.executeAsyncScript(function () {
+
+                    var callback = arguments[arguments.length - 1];
+                    var socket = new WebSocket('ws://localhost:8081');
+                    browserClient.connect('ws://localhost:8081', function () {
+
+                        browserClient.send('browserClient', ['browser', 'client'], function (err, reply) {
+
+                            callback([err, reply]);
+                        });
+                    });
+                }).then(function (response) {
+
+                    var err = response[0];
+                    var browserId = response[1];
+                    Code.expect(browserId).to.not.equal(undefined);
+                    Code.expect(err).to.equal(null);
+                    server.send(browserId, 'info', null, function (err, result) {
+
+                        Code.expect(err).to.equal(null);
+                        Code.expect(result).to.equal('browser');
+                        driver.quit();
+                        done();
+                    });
+                });
+            });
+        });
+
     });
 });
