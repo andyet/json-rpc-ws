@@ -1,4 +1,4 @@
-#json-rpc-ws
+# json-rpc-ws
 
 A websocket transport for json-rpc.  Allows for asynchronous
 bi-directional requests and responses.
@@ -8,7 +8,7 @@ routed through id via the callback passed to the `send` method.
 
 For a simple example see the files in `./example`
 
-#use
+## How to Use
 
 ```
 var JsonRpcWs = require('json-rpc-ws');
@@ -41,9 +41,9 @@ client.connect('ws://localhost:8080', function connected () {
 });
 ```
 
-#API
+## API
 
-###Server
+### Server
 
 `start(options)` - Start the server, options are passed straight into the [ws](http://npmjs.com/package/ws) server options. See the ws documentation for further info
 
@@ -51,8 +51,12 @@ client.connect('ws://localhost:8080', function connected () {
 
 `connect(url)` - Connect to given url (should start with ws:// or wss://). Like the server, this parameter is passed straight into a `ws` WebSocket object.
 
-###Shared
+### Shared
 
-Both the client and server have these methods
+Both the client and server have the following methods:
 
 `expose(method, handler)` - Add a handler for a given named rpc method. Only one handler per method is allowed, as each request can only have one reply.  The handler will be passed two parameters, the parameters from the rpc call and a callback in which to send the response.  The callback takes two paramters `error` and `reply`.  Because this is json-rpc only one of error and reply can be non-null.
+
+## License
+
+MIT
