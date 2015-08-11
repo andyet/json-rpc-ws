@@ -13,7 +13,7 @@
     "validate": "npm ls",
     "jsdoc": "jsdoc",
     "docs": "jsdoc index.js lib -d docs",
-    "preversion": "git checkout master && git pull && npm ls",
+    "preversion": "git checkout master && git pull origin master && npm ls",
     "publish-patch": "npm run preversion && npm version patch && git push origin master --tags && npm publish",
     "publish-minor": "npm run preversion && npm version minor && git push origin master --tags && npm publish",
     "publish-major": "npm run preversion && npm version major && git push origin master --tags && npm publish"
