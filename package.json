@@ -8,7 +8,7 @@
     "lint": "eslint .",
     "validate": "npm ls",
     "jsdoc": "jsdoc",
-    "docs": "jsdoc . -d docs"
+    "docs": "jsdoc index.js lib -d docs"
   },
   "keywords": [
     "json-rpc",
@@ -16,7 +16,6 @@
   ],
   "author": "Gar <gar+npm@danger.computer>",
   "license": "MIT",
-  "private": true,
   "dependencies": {
     "debug": "^2.2.0",
     "lodash.bind": "^3.1.0",
