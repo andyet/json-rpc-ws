@@ -1,6 +1,6 @@
 {
   "name": "json-rpc-ws",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "repository": {
     "type": "git",
     "url": "git@github.com:andyet/json-rpc-ws.git"
