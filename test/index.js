@@ -66,15 +66,25 @@ lab.experiment('json-rpc ws', function () {
 
         client.send('reflect', ['test one'], function (error1, reply1) {
 
-            Code.expect(error1).to.be.null();
+            Code.expect(error1).to.equal(undefined);
             Code.expect(reply1).to.have.length(1);
             Code.expect(reply1[0]).to.equal('test one');
             client.send('reflect', ['test two'], function (error2, reply2) {
 
-                Code.expect(error2).to.equal(null);
+                Code.expect(error2).to.equal(undefined);
                 Code.expect(reply2).to.have.length(1);
                 Code.expect(reply2[0]).to.equal('test two');
-                done();
+                client.send('reflect', null, function (error3, reply3) {
+
+                    Code.expect(error3).to.equal(undefined);
+                    Code.expect(reply3).to.equal('empty');
+                    client.send('reflect', undefined, function (error3, reply3) {
+
+                        Code.expect(error3).to.equal(undefined);
+                        Code.expect(reply3).to.equal('empty');
+                        done();
+                    });
+                });
             });
         });
     });
@@ -83,7 +93,7 @@ lab.experiment('json-rpc ws', function () {
 
         client.send('error', null, function (error, reply) {
 
-            Code.expect(reply).to.be.null();
+            Code.expect(reply).to.equal(undefined);
             Code.expect(error).to.equal('error');
             done();
         });
@@ -137,7 +147,7 @@ lab.experiment('json-rpc ws', function () {
         });
         client.expose('info', function (params, reply) {
 
-            Code.expect(params).to.equal(null);
+            Code.expect(params).to.equal(undefined);
             reply(null, 'info ok');
         });
         client.send('saveConnection', null, function () {
@@ -279,7 +289,7 @@ lab.experiment('json-rpc ws', function () {
                     Code.expect(err).to.equal(null);
                     server.send(browserId, 'info', null, function (err, result) {
 
-                        Code.expect(err).to.equal(null);
+                        Code.expect(err).to.equal(undefined);
                         Code.expect(result).to.equal('browser');
                         driver.quit();
                         done();
