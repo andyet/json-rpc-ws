@@ -4,7 +4,7 @@
  * at least some assurance that the code's working
  */
 
-var JsonRpcWs = require('../');
+var JsonRpcWs = require('../browser');
 var browserClient = JsonRpcWs.createClient();
 
 browserClient.expose('info', function info (params, reply) {
