@@ -10,6 +10,11 @@ For a simple example see the files in `./example`
 
 ## How to Use
 
+Note: [ws](https://github.com/websockets/ws) removed client code as of
+1.0.0, so browser-based implementations of this work differently now
+
+###Node
+
 ```
 var JsonRpcWs = require('json-rpc-ws');
 
@@ -28,9 +33,23 @@ server.start({ port: 8080 }, function started () {
 ```
 
 ```
-var JsonRpcWs = require('../');
+var JsonRpcWs = require('json-rpc-ws');
 var client = JsonRpcWs.createClient();
-var logger = require('debug')('example');
+
+client.connect('ws://localhost:8080', function connected () {
+
+    client.send('mirror', ['a param', 'another param'], function mirrorReply (error, reply) {
+
+        console.log('mirror reply', reply);
+    });
+});
+```
+
+###Browser
+
+```
+var JsonRpcWs = require('json-rpc-ws/browser');
+var client = JsonRpcWs.createClient();
 
 client.connect('ws://localhost:8080', function connected () {
 
