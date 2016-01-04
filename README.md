@@ -10,7 +10,7 @@ For a simple example see the files in `./example`
 
 ## How to Use
 
-Note: (ws)[https://github.com/websockets/ws] removed client code as of
+Note: [ws](https://github.com/websockets/ws) removed client code as of
 1.0.0, so browser-based implementations of this work differently now
 
 ###Node
