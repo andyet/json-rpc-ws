@@ -37,6 +37,8 @@
   ],
   "files": [
     "index.js",
+    "browser.js",
+    "browser/*",
     "lib/*"
   ],
   "devDependencies": {
