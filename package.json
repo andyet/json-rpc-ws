@@ -44,6 +44,7 @@
     "browserify": "^13.0.0",
     "code": "^2.0.1",
     "eslint": "^1.1.0",
+    "eslint-config-andyet": "^1.0.0",
     "eslint-plugin-hapi": "^4.0.0",
     "function-bind": "^1.0.2",
     "git-validate": "^2.0.3",
