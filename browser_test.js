@@ -4,7 +4,7 @@
  * at least some assurance that the code's working
  */
 
-var JsonRpcWs = require('../browser');
+var JsonRpcWs = require('./browser');
 var browserClient = JsonRpcWs.createClient();
 
 Function.prototype.bind = require('function-bind');
