@@ -1,7 +1,8 @@
 /**
  * Browser test code
- * We use assert here just to throw on errors so we have
- * at least some assurance that the code's working
+ * This code is browserified and sent to phantomjs
+ * as part of the test suite, it is not part of the
+ * library itself
  */
 
 var JsonRpcWs = require('./browser');
