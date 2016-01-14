@@ -3,6 +3,9 @@
 A websocket transport for json-rpc.  Allows for asynchronous
 bi-directional requests and responses.
 
+[![Build Status](https://travis-ci.org/andyet/json-rpc-ws.svg?branch=master)](https://travis-ci.org/andyet/json-rpc-ws)
+
+--
 Method handlers are registered via the `expose` method.  Results are
 routed through id via the callback passed to the `send` method.
 
