@@ -255,7 +255,7 @@ lab.experiment('json-rpc ws', function () {
 
             process.env.PATH = process.env.PATH + ':./node_modules/.bin';
             var b = Browserify();
-            b.add('./browser/index.js');
+            b.add('./browser_test.js');
             b.bundle(function (err, buf) {
 
                 Code.expect(err).to.not.exist();
