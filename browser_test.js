@@ -8,8 +8,6 @@
 var JsonRpcWs = require('./browser');
 var browserClient = JsonRpcWs.createClient();
 
-Function.prototype.bind = require('function-bind');
-
 browserClient.expose('info', function info (params, reply) {
 
     reply(null, 'browser');

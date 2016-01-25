@@ -45,7 +45,6 @@
     "eslint": "^1.1.0",
     "eslint-config-andyet": "^1.0.0",
     "eslint-plugin-hapi": "^4.0.0",
-    "function-bind": "^1.0.2",
     "git-validate": "^2.0.3",
     "jsdoc": "^3.3.2",
     "lab": "^8.0.0",
