@@ -47,7 +47,7 @@
     "eslint-plugin-hapi": "^4.0.0",
     "git-validate": "^2.0.3",
     "jsdoc": "^3.3.2",
-    "lab": "^9.0.0",
+    "lab": "^10.0.0",
     "phantomjs": "^2.1.1",
     "selenium-webdriver": "^2.46.1"
   }
