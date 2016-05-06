@@ -21,7 +21,7 @@ Note: [ws](https://github.com/websockets/ws) removed client code as of
 ```
 var JsonRpcWs = require('json-rpc-ws');
 
-var server = JsonRpcWs.createServer;
+var server = JsonRpcWs.createServer();
 
 server.expose('mirror', function mirror (params, reply) {
 
