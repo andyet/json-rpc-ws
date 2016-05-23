@@ -244,7 +244,7 @@ lab.experiment('json-rpc ws', function () {
         payload = JsonRpcWs.Errors('parseError', 'b', { extra: 'data' });
         Code.expect(payload.id).to.equal('b');
         Code.expect(payload.error).to.include('code', 'message');
-        Code.expect(payload.error.data).to.deep.equal({ extra: 'data' });
+        Code.expect(payload.error.data).to.equal({ extra: 'data' });
         done();
     });
 
