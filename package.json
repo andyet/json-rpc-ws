@@ -49,6 +49,6 @@
     "jsdoc": "^3.3.2",
     "lab": "^11.0.0",
     "phantomjs": "^2.1.1",
-    "selenium-webdriver": "^2.46.1"
+    "selenium-webdriver": "^3.0.0"
   }
 }
