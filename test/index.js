@@ -167,7 +167,7 @@ lab.experiment('json-rpc ws', function () {
         server.send(0, 'info', undefined, function (err, result) {
 
             Code.expect(result).to.equal(undefined);
-            Code.expect(err).to.include('code', 'message');
+            Code.expect(err).to.include(['code', 'message']);
             Code.expect(err.code).to.equal(-32000);
             done();
         });
@@ -235,15 +235,15 @@ lab.experiment('json-rpc ws', function () {
         var payload;
         payload = JsonRpcWs.Errors('parseError');
         Code.expect(payload.id).to.equal(undefined);
-        Code.expect(payload.error).to.include('code', 'message');
+        Code.expect(payload.error).to.include(['code', 'message']);
         Code.expect(payload.error.data).to.equal(undefined);
         payload = JsonRpcWs.Errors('parseError', 'a');
         Code.expect(payload.id).to.equal('a');
-        Code.expect(payload.error).to.include('code', 'message');
+        Code.expect(payload.error).to.include(['code', 'message']);
         Code.expect(payload.error.data).to.equal(undefined);
         payload = JsonRpcWs.Errors('parseError', 'b', { extra: 'data' });
         Code.expect(payload.id).to.equal('b');
-        Code.expect(payload.error).to.include('code', 'message');
+        Code.expect(payload.error).to.include(['code', 'message']);
         Code.expect(payload.error.data).to.equal({ extra: 'data' });
         done();
     });
