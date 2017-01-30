@@ -175,7 +175,8 @@ lab.experiment('json-rpc ws', function () {
     lab.test('invalid payloads do not throw exceptions', function (done) {
 
         //This is for code coverage in the message handler to make sure rogue messages won't take the server down.;
-        var socket = WS.createConnection('ws://localhost:8081', function () {
+        var socket = new WS('ws://localhost:8081');
+        socket.on('open', function () {
 
             //TODO socket callbacks + socket.once('message') with response validation for each of these instead of this setTimeout nonsense
             socket.send('asdf\n');
