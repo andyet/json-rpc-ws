@@ -1,5 +1,7 @@
 # json-rpc-ws
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/andyet/json-rpc-ws.svg)](https://greenkeeper.io/)
+
 A websocket transport for json-rpc.  Allows for asynchronous
 bi-directional requests and responses.
 
