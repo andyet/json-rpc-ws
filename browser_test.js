@@ -1,3 +1,5 @@
+'use strict';
+
 /**
  * Browser test code
  * This code is browserified and sent to phantomjs
@@ -8,9 +10,9 @@
 var JsonRpcWs = require('./browser');
 var browserClient = JsonRpcWs.createClient();
 
-browserClient.expose('info', function info (params, reply) {
+browserClient.expose('info', function info(params, reply) {
 
-    reply(null, 'browser');
+  reply(null, 'browser');
 });
 
 window.browserClient = browserClient;

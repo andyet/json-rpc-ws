@@ -5,8 +5,8 @@ var Errors = require('./lib/errors');
 var logger = require('debug')('json-rpc-ws');
 
 var JsonRpcWs = {
-    Client: BrowserClient,
-    Errors: Errors
+  Client: BrowserClient,
+  Errors: Errors
 };
 
 /**
@@ -15,10 +15,10 @@ var JsonRpcWs = {
  * @returns {Object}JsonRpcWs Client instance
  * @public
  */
-JsonRpcWs.createClient = function createClient () {
+JsonRpcWs.createClient = function createClient() {
 
-    logger('createClient');
-    return new JsonRpcWs.Client();
+  logger('createClient');
+  return new JsonRpcWs.Client();
 };
 
 module.exports = JsonRpcWs;
