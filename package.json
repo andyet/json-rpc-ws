@@ -27,7 +27,7 @@
   "dependencies": {
     "debug": "^3.0.0",
     "uuid": "^3.0.0",
-    "ws": "^3.0.0"
+    "ws": "^4.0.0"
   },
   "pre-commit": [
     "lint",
