@@ -1,299 +1,329 @@
 'use strict';
 
-/*eslint func-names: 0*/
-var Code = require('code');
-var Lab = require('lab');
-var WS = require('ws');
-var JsonRpcWs = require('../');
-var Browserify = require('browserify');
-var Webdriver = require('selenium-webdriver');
+const Code = require('code');
+const Lab = require('lab');
+const WS = require('ws');
+const JsonRpcWs = require('../');
+const Browserify = require('browserify');
+const Webdriver = require('selenium-webdriver');
+
+const lab = exports.lab = Lab.script();
+const { expect } = Code;
+const { describe, it, after, before } = lab;
 
 Code.settings.truncateMessages = false;
-var lab = exports.lab = Lab.script();
 
-lab.experiment('json-rpc ws', function () {
+describe('json-rpc ws', () => {
 
-  var server = JsonRpcWs.createServer();
-  var client = JsonRpcWs.createClient();
-  var delayBuffer = [];
+  const server = JsonRpcWs.createServer();
+  const client = JsonRpcWs.createClient();
+  //const delayBuffer = [];
 
-  lab.before(function (done) {
+  before(() => {
 
-    server.expose('reflect', function (params, reply) {
-
+    server.expose('reflect', function reflectReply(params, reply) {
 
       reply(null, params || 'empty');
     });
-    server.expose('delay', function (params, reply) {
-
-      var last;
-      if (delayBuffer.length > 0) {
-        last = delayBuffer.pop();
-        last[1](null, last[0][0]);
-      }
-      delayBuffer.push(arguments);
-    });
-    server.expose('error', function (params, reply) {
+    server.expose('error', function errorReply(params, reply) {
 
       reply('error', null);
     });
-    server.expose('browserClient', function (params, reply) {
+    server.expose('browserClient', function browserReply(params, reply) {
 
       reply(null, this.id);
     });
 
-    server.start({ host: 'localhost', port: 8081 }, function () {
+    return new Promise((resolve) => {
 
-      client.connect('ws://localhost:8081', done);
-    });
-  });
+      server.start({ host: 'localhost', port: 8081 }, function () {
 
-  lab.after(function (done) {
-
-    client.disconnect(function () {
-
-      server.stop();
-      done();
-    });
-  });
-
-  lab.test('client has an id', function (done) {
-
-    Code.expect(client.id).to.not.equal(undefined);
-    done();
-  });
-
-  lab.test('reflecting handler', function (done) {
-
-    client.send('reflect', ['test one'], function (error1, reply1) {
-
-      Code.expect(error1).to.equal(undefined);
-      Code.expect(reply1).to.have.length(1);
-      Code.expect(reply1[0]).to.equal('test one');
-      client.send('reflect', ['test two'], function (error2, reply2) {
-
-        Code.expect(error2).to.equal(undefined);
-        Code.expect(reply2).to.have.length(1);
-        Code.expect(reply2[0]).to.equal('test two');
-        client.send('reflect', null, function (error3, reply3) {
-
-          Code.expect(error3).to.equal(undefined);
-          Code.expect(reply3).to.equal('empty');
-          client.send('reflect', undefined, function (error4, reply4) {
-
-            Code.expect(error4).to.equal(undefined);
-            Code.expect(reply4).to.equal('empty');
-            done();
-          });
-        });
+        client.connect('ws://localhost:8081', resolve);
       });
     });
   });
 
-  lab.test('error reply', function (done) {
+  after(() => {
 
-    client.send('error', null, function (error, reply) {
+    return new Promise((resolve) => {
 
-      Code.expect(reply).to.equal(undefined);
-      Code.expect(error).to.equal('error');
-      done();
+      client.disconnect(function () {
+
+        server.stop();
+        resolve();
+      });
     });
   });
 
-  lab.test('delay handler', function (done) {
+  it('client has an id', () => {
 
-    var counter = 0;
-    client.send('delay', ['test one'], function (error, reply) {
-
-      Code.expect(counter).to.equal(0);
-      counter = counter + 1;
-      Code.expect(reply).to.equal('test one');
-    });
-    client.send('delay', ['test two'], function (error, reply) {
-
-      Code.expect(counter).to.equal(1);
-      Code.expect(reply).to.equal('test two');
-      done();
-    });
-    client.send('delay', ['test three']);
+    expect(client.id).to.exist();
   });
 
-  lab.test('cannot register duplicate handler', function (done) {
+  it('reflecting handler', () => {
 
-    Code.expect(function () {
+    return Promise.all([
+      new Promise((resolve) => {
+
+        client.send('reflect', ['test one'], function (error1, reply1) {
+
+          expect(error1).to.not.exist();
+          expect(reply1).to.have.length(1);
+          expect(reply1[0]).to.equal('test one');
+          resolve();
+        });
+      }),
+      new Promise((resolve) => {
+
+        client.send('reflect', ['test two'], function (error2, reply2) {
+
+          expect(error2).to.not.exist();
+          expect(reply2).to.have.length(1);
+          expect(reply2[0]).to.equal('test two');
+          resolve();
+        });
+      }),
+      new Promise((resolve) => {
+
+        client.send('reflect', null, function (error3, reply3) {
+
+          expect(error3).to.not.exist();
+          expect(reply3).to.equal('empty');
+          resolve();
+        });
+      }),
+      new Promise((resolve) => {
+
+        client.send('reflect', undefined, function (error4, reply4) {
+
+          expect(error4).to.not.exist();
+          expect(reply4).to.equal('empty');
+          resolve();
+        });
+      })
+    ]);
+  });
+
+  it('error reply', () => {
+
+    return new Promise((resolve) => {
+
+      client.send('error', null, function (error, reply) {
+
+        expect(reply).to.not.exist();
+        expect(error).to.equal('error');
+        resolve();
+      });
+    });
+  });
+
+  it('cannot register duplicate handler', () => {
+
+    const throws = () => {
 
       server.expose('reflect', function (params, reply) {
 
         reply();
       });
-    }).to.throw(Error);
-    done();
+    };
+    expect(throws).to.throw(Error);
   });
 
-  lab.test('hasHandler', function (done) {
+  it('hasHandler', () => {
 
-    Code.expect(server.hasHandler('reflect')).to.equal(true);
-    Code.expect(server.hasHandler('nonexistant')).to.equal(false);
-    done();
+    expect(server.hasHandler('reflect')).to.equal(true);
+    expect(server.hasHandler('nonexistant')).to.equal(false);
   });
 
-  lab.test('connection Ids', function (done) {
 
-    var connectionId;
-    server.expose('saveConnection', function (params, reply) {
+  it('connectionId', () => {
 
-      Code.expect(this.id).to.not.equal(undefined);
+    let connectionId;
+    server.expose('saveConnection', function saveConnectionReply(params, reply) {
+
+      expect(this.id).to.exist();
       connectionId = this.id;
       reply(null, 'ok');
     });
-    client.expose('info', function (params, reply) {
 
-      Code.expect(params).to.equal(undefined);
+    client.expose('info', function infoReply(params, reply) {
+
+      expect(params).to.not.exist();
       reply(null, 'info ok');
     });
-    client.send('saveConnection', null, function () {
+    return new Promise((resolve) => {
 
-      Code.expect(connectionId).to.not.equal(undefined);
-      Code.expect(server.getConnection(connectionId)).to.not.equal(undefined);
-      server.send(connectionId, 'info', null, function (err, result) {
+      client.send('saveConnection', null, function () {
 
-        Code.expect(result).to.equal('info ok');
-        done();
-      });
-    });
-  });
-  lab.test('invalid connection id', function (done) {
+        expect(connectionId).to.exist();
+        expect(server.getConnection(connectionId)).to.exist();
+        server.send(connectionId, 'info', null, function (err, result) {
 
-    server.send(0, 'info', undefined); //No callback is ok
-    server.send(0, 'info', undefined, function (err, result) {
-
-      Code.expect(result).to.equal(undefined);
-      Code.expect(err).to.include(['code', 'message']);
-      Code.expect(err.code).to.equal(-32000);
-      done();
-    });
-  });
-  lab.test('invalid payloads do not throw exceptions', function (done) {
-
-    //This is for code coverage in the message handler to make sure rogue messages won't take the server down.;
-    var socket = new WS('ws://localhost:8081');
-    socket.on('open', function () {
-
-      //TODO socket callbacks + socket.once('message') with response validation for each of these instead of this setTimeout nonsense
-      socket.send('asdf\n');
-      socket.send('{}\n');
-      socket.send('{"jsonrpc":"2.0"}\n');
-      socket.send('{"jsonrpc":"2.0", "method":"reflect"}\n');
-      socket.send('{"jsonrpc":"2.0", "method":"reflect", "id":null}\n');
-      socket.send('{"jsonrpc":"2.0", "method":"reflect", "id":"asdf"}\n');
-      socket.send('{"jsonrpc":"2.0", "method":"reflect", "id":0}\n');
-      socket.send('{"jsonrpc":"2.0", "method":"reflect", "id":[0]}\n');
-      socket.send('{"jsonrpc":"2.0", "method":"reflect", "params":null}\n');
-      socket.send('{"jsonrpc":"2.0", "method":"reflect", "id":null, "params":null}\n');
-      socket.send('{"jsonrpc":"2.0", "error":{"code": -32000, "message":"Server error"}}\n');
-      socket.send('{"jsonrpc":"2.0", "id":"asdf", "result":"test"}\n');
-      socket.send('[{"jsonrpc":"2.0", "result":"test"},{"jsonrpc":"2.0", "result":"rest"}]');
-      setTimeout(done, 100);
-    });
-  });
-  lab.test('client.send', function (done) {
-
-    //No callback
-    client.send('reflect', null); //Valid method
-    client.send('nonexistant', null); //Unexposed method
-    Code.expect(function () {
-
-      client.send(1, null); //Invalid method
-    }).to.throw(Error);
-    done();
-  });
-  lab.test('client hangups', function (done) {
-
-    var clientA = JsonRpcWs.createClient();
-    var clientB = JsonRpcWs.createClient();
-    //With and without callbacks;
-    clientA.connect('ws://localhost:8081', function () {
-
-      clientA.disconnect(function () {
-
-        clientB.connect('ws://localhost:8081', function () {
-
-          clientB.disconnect();
-          done();
+          expect(err).to.not.exist();
+          expect(result).to.equal('info ok');
+          resolve();
         });
       });
-
     });
   });
-  lab.test('server.start without callback', function (done) {
 
-    var serverA = JsonRpcWs.createServer();
+  it('invalid connection id', () => {
+
+    server.send(0, 'info', undefined); //No callback is ok
+    return new Promise((resolve) => {
+
+      server.send(0, 'info', undefined, function (err, result) {
+
+        expect(result).to.not.exist();
+        expect(err).to.include(['code', 'message']);
+        expect(err.code).to.equal(-32000);
+        resolve();
+      });
+    });
+  });
+
+  it('invalid payloads do not throw exceptions', () => {
+
+    //This is for code coverage in the message handler to make sure rogue messages won't take the server down.;
+    const socket = new WS('ws://localhost:8081');
+    return new Promise((resolve) => {
+
+      socket.on('open', function () {
+
+        //TODO socket callbacks + socket.once('message') with response validation for each of these instead of this setTimeout nonsense
+        socket.send('asdf\n');
+        socket.send('{}\n');
+        socket.send('{"jsonrpc":"2.0"}\n');
+        socket.send('{"jsonrpc":"2.0", "method":"reflect"}\n');
+        socket.send('{"jsonrpc":"2.0", "method":"reflect", "id":null}\n');
+        socket.send('{"jsonrpc":"2.0", "method":"reflect", "id":"asdf"}\n');
+        socket.send('{"jsonrpc":"2.0", "method":"reflect", "id":0}\n');
+        socket.send('{"jsonrpc":"2.0", "method":"reflect", "id":[0]}\n');
+        socket.send('{"jsonrpc":"2.0", "method":"reflect", "params":null}\n');
+        socket.send('{"jsonrpc":"2.0", "method":"reflect", "id":null, "params":null}\n');
+        socket.send('{"jsonrpc":"2.0", "error":{"code": -32000, "message":"Server error"}}\n');
+        socket.send('{"jsonrpc":"2.0", "id":"asdf", "result":"test"}\n');
+        socket.send('[{"jsonrpc":"2.0", "result":"test"},{"jsonrpc":"2.0", "result":"rest"}]');
+        setTimeout(resolve, 100);
+      });
+    });
+  });
+
+  it('client.send', () => {
+
+    //No callback
+    const doesNotThrow = () => {
+
+      client.send('reflect', null); //Valid method
+      client.send('nonexistant', null); //Unexposed method
+    };
+
+    const throws = () => {
+
+      client.send(1, null); //Invalid method
+    };
+    expect(throws).to.throw(Error);
+    expect(doesNotThrow).to.not.throw();
+  });
+
+  it('client hangups', () => {
+
+    const clientA = JsonRpcWs.createClient();
+    const clientB = JsonRpcWs.createClient();
+    return new Promise((resolve) => {
+
+      clientA.connect('ws://localhost:8081', function () {
+
+        clientA.disconnect(function () {
+
+          clientB.connect('ws://localhost:8081', function () {
+
+            clientB.disconnect();
+            resolve();
+          });
+        });
+      });
+    });
+  });
+
+  it('server.start without callback', () => {
+
+    const serverA = JsonRpcWs.createServer();
     serverA.start({ port: 8082 });
-    serverA.server.once('listening', done);
+    return new Promise((resolve) => {
+
+      serverA.server.once('listening', resolve);
+    });
   });
 
-  lab.test('errors', function (done) {
+  it('errors', () => {
 
-    var payload;
+    let payload;
     payload = JsonRpcWs.Errors('parseError');
-    Code.expect(payload.id).to.equal(undefined);
-    Code.expect(payload.error).to.include(['code', 'message']);
-    Code.expect(payload.error.data).to.equal(undefined);
+    expect(payload.id).to.not.exist();
+    expect(payload.error).to.include(['code', 'message']);
+    expect(payload.error.data).to.not.exist();
     payload = JsonRpcWs.Errors('parseError', 'a');
-    Code.expect(payload.id).to.equal('a');
-    Code.expect(payload.error).to.include(['code', 'message']);
-    Code.expect(payload.error.data).to.equal(undefined);
+    expect(payload.id).to.equal('a');
+    expect(payload.error).to.include(['code', 'message']);
+    expect(payload.error.data).to.not.exist();
     payload = JsonRpcWs.Errors('parseError', 'b', { extra: 'data' });
-    Code.expect(payload.id).to.equal('b');
-    Code.expect(payload.error).to.include(['code', 'message']);
-    Code.expect(payload.error.data).to.equal({ extra: 'data' });
-    done();
+    expect(payload.id).to.equal('b');
+    expect(payload.error).to.include(['code', 'message']);
+    expect(payload.error.data).to.equal({ extra: 'data' });
   });
 
-  lab.experiment('browser', function () {
+  describe('browser', () => {
 
-    var script;
-    lab.before(function (done) {
+    let script;
+    before(() => {
 
-      process.env.PATH = process.env.PATH + ':./node_modules/.bin';
-      var b = Browserify();
+      process.env.PATH = `${process.env.PATH}:./node_modules/.bin`;
+      const b = Browserify();
       b.add('./browser_test.js');
-      b.bundle(function (err, buf) {
+      return new Promise((resolve) => {
 
-        Code.expect(err).to.not.exist();
-        script = buf.toString();
-        done();
+        b.bundle((err, buf) => {
+
+          expect(err).to.not.exist();
+          script = buf.toString();
+          expect(script).to.exist();
+          resolve();
+        });
       });
     });
 
-    lab.test('works in browser', function (done) {
+    it('works in browser', () => {
 
-      Code.expect(script).to.not.equal('');
-      var driver = new Webdriver.Builder().forBrowser('phantomjs').build();
-      driver.executeScript(script).then(function () {
+      const driver = new Webdriver.Builder().forBrowser('phantomjs').build();
+      return new Promise((resolve) => {
 
-        driver.executeAsyncScript(function () {
+        let x = 0;
+        driver.executeScript(script).then(function () {
 
-          var callback = arguments[arguments.length - 1];
-          browserClient.connect('ws://localhost:8081', function () {
+          driver.executeAsyncScript(function () {
 
-            browserClient.send('browserClient', ['browser', 'client'], function (err, reply) {
+            var callback = arguments[arguments.length - 1];
+            browserClient.connect('ws://localhost:8081', function connected() {
 
-              callback([err, reply]);
+              browserClient.send('browserClient', ['browser', 'client'], function sendReply(err, reply) {
+
+                callback([err, reply]);
+              });
             });
-          });
-        }).then(function (response) {
+          }).then((response) => {
 
-          var err = response[0];
-          var browserId = response[1];
-          Code.expect(browserId).to.not.equal(undefined);
-          Code.expect(err).to.equal(null);
-          server.send(browserId, 'info', null, function (err, result) {
+            const err = response[0];
+            const browserId = response[1];
+            expect(browserId).to.not.not.exist();
+            expect(err).to.equal(null);
+            server.send(browserId, 'info', null, function (err, result) {
 
-            Code.expect(err).to.equal(undefined);
-            Code.expect(result).to.equal('browser');
-            driver.quit();
-            done();
+              expect(err).to.not.exist();
+              expect(result).to.equal('browser');
+              driver.quit();
+              resolve();
+            });
           });
         });
       });
