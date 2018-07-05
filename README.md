@@ -18,7 +18,7 @@ For a simple example see the files in `./example`
 Note: [ws](https://github.com/websockets/ws) removed client code as of
 1.0.0, so browser-based implementations of this work differently now
 
-###Node
+### Node
 
 ```
 var JsonRpcWs = require('json-rpc-ws');
@@ -50,7 +50,7 @@ client.connect('ws://localhost:8080', function connected () {
 });
 ```
 
-###Browser
+### Browser
 
 ```
 var JsonRpcWs = require('json-rpc-ws/browser');
@@ -71,7 +71,7 @@ client.connect('ws://localhost:8080', function connected () {
 
 `start(options)` - Start the server, options are passed straight into the [ws](http://npmjs.com/package/ws) server options. See the ws documentation for further info
 
-###Client
+### Client
 
 `connect(url)` - Connect to given url (should start with ws:// or wss://). Like the server, this parameter is passed straight into a `ws` WebSocket object.
 
