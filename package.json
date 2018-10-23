@@ -46,7 +46,7 @@
     "eslint-config-andyet": "^2.1.0",
     "git-validate": "^2.2.4",
     "jsdoc": "^3.5.5",
-    "lab": "^16.1.0",
+    "lab": "^17.0.0",
     "phantomjs-prebuilt": "^2.1.16",
     "selenium-webdriver": "^3.6.0"
   }
