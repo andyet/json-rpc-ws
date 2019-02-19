@@ -26,7 +26,7 @@
   "license": "MIT",
   "dependencies": {
     "uuid": "^3.0.0",
-    "ws": "^6.1.2"
+    "ws": "^6.1.4"
   },
   "pre-commit": [
     "validate",
@@ -41,11 +41,11 @@
   "devDependencies": {
     "browserify": "^16.2.3",
     "code": "^5.2.4",
-    "eslint": "^5.10.0",
+    "eslint": "^5.14.1",
     "eslint-config-andyet": "^2.1.0",
     "git-validate": "^2.2.4",
     "jsdoc": "^3.5.5",
-    "lab": "^18.0.0",
+    "lab": "^18.0.2",
     "phantomjs-prebuilt": "^2.1.16",
     "selenium-webdriver": "^3.6.0"
   }
