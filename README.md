@@ -1,11 +1,9 @@
 # json-rpc-ws
 
-[![Greenkeeper badge](https://badges.greenkeeper.io/andyet/json-rpc-ws.svg)](https://greenkeeper.io/)
+## This package is deprecated.
 
 A websocket transport for json-rpc.  Allows for asynchronous
 bi-directional requests and responses.
-
-[![Build Status](https://travis-ci.org/andyet/json-rpc-ws.svg?branch=master)](https://travis-ci.org/andyet/json-rpc-ws)
 
 --
 Method handlers are registered via the `expose` method.  Results are
